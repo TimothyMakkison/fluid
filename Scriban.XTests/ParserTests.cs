@@ -546,6 +546,74 @@ end
     }
 
     [Fact]
+    public void ShouldSkipNewLinesInTags3()
+    {
+        var source = @"{% 
+liquid if true or false
+if false
+echo false
+else
+echo true 
+end
+end
+%}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+
+    [Fact]
+    public void ShouldSkipNewLinesInTags2()
+    {
+        var source = @"{% 
+liquid if true or false
+echo true
+end
+%}";
+//        var source = @"{% liquid
+//      assign cool = true
+//   if cool
+//     echo 'welcome to the liquid tag' | upcase
+//   end
+//%}";
+
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+    [Fact]
+    public void ShouldSkipNewLinesInTags4()
+    {
+        var source = @"{% liquid if true or false; if false; echo false; else; echo true; end; end%}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+    [Fact]
     public void ShouldSkipNewLinesInOutput()
     {
         var source = @"{{
@@ -969,7 +1037,8 @@ class  {
     public void ShouldParseLiquidTagWithBlocks()
     {
         var source = @"
-{% liquid assign cool = true
+{% liquid 
+      assign cool = true
    if cool
      echo 'welcome to the liquid tag' | upcase
    end 

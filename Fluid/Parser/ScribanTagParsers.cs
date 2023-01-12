@@ -79,6 +79,7 @@ namespace Fluid.Parser
                 var p = (FluidParseContext)context;
 
                 var newLineIsPresent = false;
+                var semiColonIsPresent = false;
 
                 if (_skipWhiteSpace)
                 {
@@ -88,6 +89,12 @@ namespace Fluid.Parser
 
                         while (Character.IsWhiteSpace(cursor.Current))
                         {
+                            cursor.Advance();
+                        }
+
+                        while (cursor.Current == ';')
+                        {
+                            semiColonIsPresent = true;
                             cursor.Advance();
                         }
 
@@ -111,7 +118,7 @@ namespace Fluid.Parser
 
                 if (p.InsideLiquidTag)
                 {
-                    if (newLineIsPresent)
+                    if (newLineIsPresent || semiColonIsPresent)
                     {
                         result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
                         return true;
