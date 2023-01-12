@@ -12,11 +12,11 @@ namespace Fluid.Ast
     public class IncludeStatement : Statement
     {
         public const string ViewExtension = ".liquid";
-        private readonly FluidParser _parser;
+        private readonly IParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public IncludeStatement(FluidParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public IncludeStatement(IParser parser, Expression path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;

@@ -15,7 +15,7 @@ using static Parlot.Fluent.Parsers;
 
 namespace Fluid
 {
-    public class FluidParser : IParser
+    public class ScribanParser : IParser
     {
         public Parser<List<Statement>> Grammar { get; private set; }
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
@@ -71,11 +71,11 @@ namespace Fluid
         protected static readonly LiteralExpression TrueKeyword = new LiteralExpression(BooleanValue.True);
         protected static readonly LiteralExpression FalseKeyword = new LiteralExpression(BooleanValue.False);
 
-        public FluidParser() : this(new())
+        public ScribanParser() : this(new())
         {
         }
 
-        public FluidParser(FluidParserOptions parserOptions)
+        public ScribanParser(FluidParserOptions parserOptions)
         {
             var Integer = Terms.Integer().Then<Expression>(x => new LiteralExpression(NumberValue.Create(x)));
 

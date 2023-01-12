@@ -6,6 +6,8 @@ namespace Fluid.Benchmarks
     {
         static void Main(string[] args)
         {
+            var scr = new FluidBenchmarks();
+            scr.Parse();
             BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
         }
     }

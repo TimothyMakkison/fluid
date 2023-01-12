@@ -15,11 +15,11 @@ namespace Fluid.Ast
     public class RenderStatement : Statement
     {
         public const string ViewExtension = ".liquid";
-        private readonly FluidParser _parser;
+        private readonly IParser _parser;
         private volatile CachedTemplate _cachedTemplate;
         private readonly SemaphoreSlim _semaphore = new SemaphoreSlim(1);
 
-        public RenderStatement(FluidParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
+        public RenderStatement(IParser parser, string path, Expression with = null, Expression @for = null, string alias = null, IList<AssignStatement> assignStatements = null)
         {
             _parser = parser;
             Path = path;

@@ -6,7 +6,7 @@ namespace Fluid.Benchmarks
     public class CompiledFluidBenchmarks : BaseBenchmarks
     {
         private readonly TemplateOptions _options = new TemplateOptions();
-        private readonly FluidParser _parser  = new FluidParser().Compile();
+        private readonly FluidParser _parser  = new FluidParser().Compile() as FluidParser;
         private readonly IFluidTemplate _fluidTemplate;
 
         public CompiledFluidBenchmarks()

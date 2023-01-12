@@ -11,7 +11,7 @@ namespace Fluid
 {
     public static class FluidParserExtensions
     {
-        public static IFluidTemplate Parse(this FluidParser parser, string template)
+        public static IFluidTemplate Parse(this IParser parser, string template)
         {
             var context = new FluidParseContext(template);
 
