@@ -37,7 +37,7 @@ namespace Fluid
             return new FluidTemplate(statements);
         }
 
-        public static bool TryParse(this FluidParser parser, string template, out IFluidTemplate result, out string error)
+        public static bool TryParse(this IParser parser, string template, out IFluidTemplate result, out string error)
         {
             try
             {
@@ -59,7 +59,7 @@ namespace Fluid
             }
         }
 
-        public static bool TryParse(this FluidParser parser, string template, out IFluidTemplate result)
+        public static bool TryParse(this IParser parser, string template, out IFluidTemplate result)
         {
             return parser.TryParse(template, out result, out _);
         }
