@@ -60,11 +60,11 @@ namespace Fluid
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
 
-        protected static readonly Parser<TagResult> OutputStart = TagParsers.OutputTagStart();
-        protected static readonly Parser<TagResult> OutputEnd = TagParsers.OutputTagEnd(true);
-        protected static readonly Parser<TagResult> TagStart = TagParsers.TagStart();
-        protected static readonly Parser<TagResult> TagStartSpaced = TagParsers.TagStart(true);
-        protected static readonly Parser<TagResult> TagEnd = TagParsers.TagEnd(true);
+        protected static readonly Parser<TagResult> OutputStart = ScribanTagParsers.OutputTagStart(); // {{
+        protected static readonly Parser<TagResult> OutputEnd = ScribanTagParsers.OutputTagEnd(true);
+        protected static readonly Parser<TagResult> TagStart = ScribanTagParsers.TagStart(); // {%
+        protected static readonly Parser<TagResult> TagStartSpaced = ScribanTagParsers.TagStart(true);
+        protected static readonly Parser<TagResult> TagEnd = ScribanTagParsers.TagEnd(true);
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
@@ -359,7 +359,7 @@ namespace Fluid
                             .And(ZeroOrOne(
                                 CreateTag("else").SkipAnd(AnyTagsList))
                                 .Then(x => x != null ? new ElseStatement(x) : null))
-                            .AndSkip(CreateTag("endfor").ElseError($"'{{% endfor %}}' was expected"))
+                            .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                             .Then<Statement>(x =>
                             {
                                 var identifier = x.Item1;
@@ -380,7 +380,7 @@ namespace Fluid
                                 )))
                             .AndSkip(TagEnd)
                             .And(AnyTagsList)
-                            .AndSkip(CreateTag("endfor").ElseError($"'{{% endfor %}}' was expected"))
+                            .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                             .Then<Statement>(x =>
                             {
                                 var identifier = x.Item1;

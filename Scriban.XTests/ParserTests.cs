@@ -1,14 +1,15 @@
 using Fluid;
 using Fluid.Ast;
 using Fluid.Parser;
+using System.Collections.Generic;
 
 namespace Scriban.XTests;
 public class ParserTests
 {
 #if COMPILED
-        private static IParser _parser = new FluidParser().Compile();
+        private static IParser _parser = new ScribanParser().Compile();
 #else
-    private static IParser _parser = new FluidParser();
+    private static IParser _parser = new ScribanParser();
 #endif
 
     private static IReadOnlyList<Statement> Parse(string source)
@@ -91,7 +92,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseForTag()
     {
-        var statements = Parse("{% for a in b %}{% endfor %}");
+        var statements = Parse("{% for a in b %}{% end %}");
 
         Assert.IsType<ForStatement>(statements.ElementAt(0));
     }
@@ -99,7 +100,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseForElseTag()
     {
-        var statements = Parse("{% for a in b %}x{% else %}y{% endfor %}");
+        var statements = Parse("{% for a in b %}x{% else %}y{% end %}");
 
         Assert.IsType<ForStatement>(statements.ElementAt(0));
         var forStatement = statements.ElementAt(0) as ForStatement;
@@ -111,7 +112,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseForLimitLiteral()
     {
-        var statements = Parse("{% for item in items limit: 1 %}x{% endfor %}");
+        var statements = Parse("{% for item in items limit: 1 %}x{% end %}");
 
         Assert.IsType<ForStatement>(statements.ElementAt(0));
         var forStatement = statements.ElementAt(0) as ForStatement;
@@ -122,7 +123,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseForLimitMember()
     {
-        var statements = Parse("{% for item in items limit: limit %}x{% endfor %}");
+        var statements = Parse("{% for item in items limit: limit %}x{% end %}");
 
         Assert.IsType<ForStatement>(statements.ElementAt(0));
         var forStatement = statements.ElementAt(0) as ForStatement;
@@ -133,7 +134,7 @@ public class ParserTests
     [Fact]
     public void ShouldReadSingleCharInTag()
     {
-        var statements = Parse(@"{% for a in b %};{% endfor %}");
+        var statements = Parse(@"{% for a in b %};{% end %}");
         Assert.Single(statements);
         var text = ((ForStatement)statements[0]).Statements[0] as TextSpanStatement;
         Assert.Equal(";", text.Text.ToString());
@@ -305,7 +306,7 @@ def", "at (")]
     }
 
     [Theory]
-    [InlineData("{% for a in b %} {% endfor %}")]
+    [InlineData("{% for a in b %} {% end %}")]
     [InlineData("{% if true %} {% endif %}")]
     [InlineData("{% unless true %} {% endunless %}")]
     [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
@@ -663,7 +664,7 @@ true
     [Fact]
     public void CycleShouldHandleNumbers()
     {
-        var source = @"{% for i in (1..100) limit:9%}{% cycle 1, 2 ,3 %}<br />{% endfor %}";
+        var source = @"{% for i in (1..100) limit:9%}{% cycle 1, 2 ,3 %}<br />{% end %}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -733,7 +734,7 @@ true
     /** {{ property.Description }} */
 {%-   endif %}
     {% if property.IsReadOnly %}readonly {% endif %}{{ property.PropertyName }}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% endif %}: {{ property.Type }}{{ property.TypePostfix }};
-{%- endfor %}
+{%- end %}
 {%- if HasIndexerProperty %}
     [key: string]: {{ IndexerPropertyValueType }}; 
 {%- endif %}
@@ -779,7 +780,7 @@ true
             this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }}; 
 {%-                     endif %}
 {%-                 endif %}
-{%-             endfor %}
+{%-             end %}
 {%-         endif %}
         }
 {%-     endif %}
@@ -789,7 +790,7 @@ true
 {%-             if property.HasDefaultValue %}
             this.{{ property.PropertyName }} = {{ property.DefaultValue }};
 {%-             endif %}
-{%-         endfor %}
+{%-         end %}
         }
 {%-     endif %}
 {%-     if HasBaseDiscriminator %}
@@ -811,7 +812,7 @@ true
 {%-     endif %}
 {%-     for property in Properties %}
             {{ property.ConvertToClassCode | tab }}
-{%-     endfor %}
+{%-     end %}
         }
 {%- endif %}
     }
@@ -826,7 +827,7 @@ true
 {%-       else %}
             return createInstance<{{ derivedClass.ClassName }}>(data, _mappings, {{ derivedClass.ClassName }});
 {%-       endif %}
-{%-     endfor %}
+{%-     end %}
 {%-   endif %}
 {%-   if IsAbstract %}
         throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
@@ -845,7 +846,7 @@ true
             return result;
 {%-       endif %}
         }
-{%-     endfor %}
+{%-     end %}
 {%-   endif %}
 {%-     if IsAbstract %}
         throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
@@ -869,7 +870,7 @@ true
 {%- endif %}
 {%- for property in Properties %}
         {{ property.ConvertToJavaScriptCode | tab }}
-{%- endfor %}
+{%- end %}
 {%- if HasInheritance %}
         super.toJSON(data);
 {%- endif %}
@@ -898,7 +899,7 @@ true
     /** {{ property.Description }} */
 {%-       endif %}
     {{ property.PropertyName }}{% if property.IsOptional %}?{% endif %}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
-{%-   endfor %}
+{%-   end %}
 {%-   if HasIndexerProperty %}
     [key: string]: {{ IndexerPropertyValueType }}; 
 {%-   endif %}
@@ -989,9 +990,9 @@ class  {
         var options = new FluidParserOptions { AllowFunctions = true };
 
 #if COMPILED
-        var _parser = new FluidParser(options).Compile();
+        var _parser = new ScribanParser(options).Compile();
 #else
-        var _parser = new FluidParser(options);
+        var _parser = new ScribanParser(options);
 #endif
 
         _parser.TryParse("{{ a() }}", out var template, out var errors);
@@ -1015,9 +1016,9 @@ class  {
         var options = new FluidParserOptions { AllowFunctions = false };
 
 #if COMPILED
-        var parser = new FluidParser(options).Compile();
+        var parser = new ScribanParser(options).Compile();
 #else
-        var parser = new FluidParser(options);
+        var parser = new ScribanParser(options);
 #endif
 
         Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
@@ -1044,10 +1045,10 @@ class  {
                 {%- assign array = (1..6) %}
                 {%- for item in array limit: 3 %}
                 {{- item}}
-                {%- endfor %}
+                {%- end %}
                 {%- for item in array offset: continue limit: 2 %}
                 {{- item}}
-                {%- endfor %}";
+                {%- end %}";
 
         var template = _parser.Parse(source);
         Assert.Equal("12345", template.Render());
