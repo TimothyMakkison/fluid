@@ -325,15 +325,7 @@ namespace Fluid
                         .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
-            var UnlessTag = LogicalExpression
-                        .AndSkip(TagEnd)
-                        .And(AnyTagsList)
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
-                        .AndSkip(CreateTag("endunless").ElseError($"'{{% endunless %}}' was expected"))
-                        .Then<Statement>(x => new UnlessStatement(x.Item1, x.Item2, x.Item3))
-                        .ElseError("Invalid 'unless' tag");
+           
             var CaseTag = Primary
                        .AndSkip(TagEnd)
                        .AndSkip(AnyCharBefore(TagStart, canBeEmpty: true))
@@ -429,7 +421,6 @@ namespace Fluid
             RegisteredTags["raw"] = RawTag;
             RegisteredTags["assign"] = AssignTag;
             RegisteredTags["if"] = IfTag;
-            RegisteredTags["unless"] = UnlessTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
             RegisteredTags["liquid"] = LiquidTag;
