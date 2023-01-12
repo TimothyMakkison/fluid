@@ -32,6 +32,7 @@ namespace Fluid
         protected static readonly Parser<char> Comma = Terms.Char(',');
         protected static readonly Parser<char> Dot = Literals.Char('.');
         protected static readonly Parser<char> Pipe = Terms.Char('|');
+        protected static readonly Parser<char> SemiColon = Terms.Char(';');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
@@ -259,7 +260,7 @@ namespace Fluid
             var CaptureTag = Identifier
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
-                        .AndSkip(CreateTag("endcapture").ElseError($"'{{% endcapture %}}' was expected"))
+                        .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                         .Then<Statement>(x => new CaptureStatement(x.Item1, x.Item2))
                         .ElseError("Invalid 'capture' tag")
                         ;
@@ -321,7 +322,7 @@ namespace Fluid
                         .And(ZeroOrOne(
                             CreateTag("else").SkipAnd(AnyTagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null))
-                        .AndSkip(CreateTag("endif").ElseError($"'{{% endif %}}' was expected"))
+                        .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
             var UnlessTag = LogicalExpression
@@ -342,7 +343,7 @@ namespace Fluid
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyTagsList))
                            .Then(x => x != null ? new ElseStatement(x) : null))
-                       .AndSkip(CreateTag("endcase").ElseError($"'{{% endcase %}}' was expected"))
+                       .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2))
                        .ElseError("Invalid 'case' tag");
             var ForTag = OneOf(
@@ -397,7 +398,7 @@ namespace Fluid
                 .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
-                // as inner tags in blocks like {% if %} TagsList {% endif $}
+                // as inner tags in blocks like {% if %} TagsList {% end $}
 
                 var tagName = previous;
 
@@ -479,7 +480,7 @@ namespace Fluid
             var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
-                // as inner tags in blocks like {% if %} TagsList {% endif $}
+                // as inner tags in blocks like {% if %} TagsList {% end $}
 
                 var tagName = previous;
 
@@ -496,7 +497,7 @@ namespace Fluid
             var KnownTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
-                // as inner tags in blocks like {% if %} TagsList {% endif $}
+                // as inner tags in blocks like {% if %} TagsList {% end $}
 
                 var tagName = previous;
 

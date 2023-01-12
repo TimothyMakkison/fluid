@@ -20,7 +20,7 @@ public class ParserTests
 
     private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
     {
-        _parser.TryParse("{% if " + source + " %}true{% else %}false{% endif %}", out var template, out var messages);
+        _parser.TryParse("{% if " + source + " %}true{% else %}false{% end %}", out var template, out var messages);
 
         var context = new TemplateContext();
         init?.Invoke(context);
@@ -153,11 +153,11 @@ public class ParserTests
     [Fact]
     public void ShouldParseRawWithBlocks()
     {
-        var statements = Parse(@"{% raw %} {%if true%} {%endif%} {% endraw %}");
+        var statements = Parse(@"{% raw %} {%if true%} {%end%} {% endraw %}");
 
         Assert.Single(statements);
         Assert.IsType<RawStatement>(statements.ElementAt(0));
-        Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
+        Assert.Equal(" {%if true%} {%end%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
     }
 
     [Fact]
@@ -173,17 +173,17 @@ public class ParserTests
     [Fact]
     public void ShouldParseCommentWithBlocks()
     {
-        var statements = Parse(@"{% comment %} {%if true%} {%endif%} {% endcomment %}");
+        var statements = Parse(@"{% comment %} {%if true%} {%end%} {% endcomment %}");
 
         Assert.Single(statements);
         Assert.IsType<CommentStatement>(statements.ElementAt(0));
-        Assert.Equal(" {%if true%} {%endif%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        Assert.Equal(" {%if true%} {%end%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
     }
 
     [Fact]
     public void ShouldParseIfTag()
     {
-        var statements = Parse("{% if true %}yes{% endif %}");
+        var statements = Parse("{% if true %}yes{% end %}");
 
         Assert.IsType<IfStatement>(statements.ElementAt(0));
         Assert.True(statements.ElementAt(0) is IfStatement s && s.Statements.Count == 1);
@@ -192,7 +192,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseIfElseTag()
     {
-        var statements = Parse("{% if true %}yes{%else%}no{% endif %}");
+        var statements = Parse("{% if true %}yes{%else%}no{% end %}");
 
         var ifStatement = statements.ElementAt(0) as IfStatement;
         Assert.NotNull(ifStatement);
@@ -204,7 +204,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseIfElseIfTag()
     {
-        var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%endif%}");
+        var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%end%}");
 
         var ifStatement = statements.ElementAt(0) as IfStatement;
         Assert.NotNull(ifStatement);
@@ -240,6 +240,7 @@ public class ParserTests
     }
 
     [Theory]
+    [InlineData("{% assign for = 5 %}")]
     [InlineData("{% assign _foo = 1 %}")]
     [InlineData("{% assign __foo = 1 %}")]
     [InlineData("{% assign fo-o = 1 %}")]
@@ -275,7 +276,7 @@ def", "at (")]
   Wow, {{ username }}, you have a long name!
 {% else %}
   Hello there {{ { }}!
-{% endif %}", "at (")]
+{% end %}", "at (")]
     [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and 
       username.size > 5 &&
@@ -283,7 +284,7 @@ def", "at (")]
   Wow, {{ username }}, you have a longish name!
 {% else %}
   Hello there!
-{% endif %}", "at (")]
+{% end %}", "at (")]
     public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -307,10 +308,10 @@ def", "at (")]
 
     [Theory]
     [InlineData("{% for a in b %} {% end %}")]
-    [InlineData("{% if true %} {% endif %}")]
+    [InlineData("{% if true %} {% end %}")]
     [InlineData("{% unless true %} {% endunless %}")]
-    [InlineData("{% case a %} {% when 'cake' %} blah {% endcase %}")]
-    [InlineData("{% capture myVar %} capture me! {% endcapture %}")]
+    [InlineData("{% case a %} {% when 'cake' %} blah {% end %}")]
+    [InlineData("{% capture myVar %} capture me! {% end %}")]
     public void ShouldSucceedClosedBlock(string source)
     {
         var result = _parser.TryParse(source, out var template, out var error);
@@ -332,7 +333,7 @@ def", "at (")]
                         yum
                     {% when 'rock' %}
                         yuck
-                {% endcase %}
+                {% end %}
                 ", out var template, out var errors);
 
         var context = new TemplateContext();
@@ -533,7 +534,7 @@ false
 -%}
 true
 {%-
-endif
+end
 %}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -699,16 +700,16 @@ true
         b1
         {%- if true %}
             c1
-        {%- endif %}
+        {%- end %}
         {%- if true %}
             c2
-        {%- endif %}
-    {%- endif %}
+        {%- end %}
+    {%- end %}
     {%- if true %}
         b2
-    {%- endif %}
+    {%- end %}
     a2
-{%- endif %}
+{%- end %}
 ";
 
         Assert.True(_parser.TryParse(source, out var template, out var _));
@@ -727,26 +728,26 @@ true
         var source = @"
 {%- if HasDescription %}
 /** {{ Description }} */
-{%- endif %}
-{% if ExportTypes %}export {% endif %}{% if IsAbstract %}abstract {% endif %}class {{ ClassName }}{{ Inheritance }} {
+{%- end %}
+{% if ExportTypes %}export {% end %}{% if IsAbstract %}abstract {% end %}class {{ ClassName }}{{ Inheritance }} {
 {%- for property in Properties %}
 {%-   if property.HasDescription %}
     /** {{ property.Description }} */
-{%-   endif %}
-    {% if property.IsReadOnly %}readonly {% endif %}{{ property.PropertyName }}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% endif %}: {{ property.Type }}{{ property.TypePostfix }};
+{%-   end %}
+    {% if property.IsReadOnly %}readonly {% end %}{{ property.PropertyName }}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% end %}: {{ property.Type }}{{ property.TypePostfix }};
 {%- end %}
 {%- if HasIndexerProperty %}
     [key: string]: {{ IndexerPropertyValueType }}; 
-{%- endif %}
+{%- end %}
 {%- if HasDiscriminator %}
     protected _discriminator: string;
-{%- endif %}
+{%- end %}
 {%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData %}
 {%- if GenerateConstructorInterface or HasBaseDiscriminator %}
-    constructor({% if GenerateConstructorInterface %}data?: I{{ ClassName }}{% endif %}) {
+    constructor({% if GenerateConstructorInterface %}data?: I{{ ClassName }}{% end %}) {
 {%-     if HasInheritance %}
-        super({% if GenerateConstructorInterface %}data{% endif %});
-{%-     endif %}
+        super({% if GenerateConstructorInterface %}data{% end %});
+{%-     end %}
 {%-     if GenerateConstructorInterface and condition_temp %}
         if (data) {
 {%-         if HasInheritance == false %}
@@ -754,7 +755,7 @@ true
                 if (data.hasOwnProperty(property))
                     (<any>this)[property] = (<any>data)[property];
             }
-{%-         endif %}
+{%-         end %}
 {%-         if ConvertConstructorInterfaceData %}
 {%-             for property in Properties %}
 {%-                 if property.SupportsConstructorConversion %}
@@ -778,30 +779,30 @@ true
             }
 {%-                     else %}
             this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }}; 
-{%-                     endif %}
-{%-                 endif %}
+{%-                     end %}
+{%-                 end %}
 {%-             end %}
-{%-         endif %}
+{%-         end %}
         }
-{%-     endif %}
+{%-     end %}
 {%-     if HasDefaultValues %}
-        {% if GenerateConstructorInterface %}if (!data) {% endif %}{
+        {% if GenerateConstructorInterface %}if (!data) {% end %}{
 {%-         for property in Properties %}
 {%-             if property.HasDefaultValue %}
             this.{{ property.PropertyName }} = {{ property.DefaultValue }};
-{%-             endif %}
+{%-             end %}
 {%-         end %}
         }
-{%-     endif %}
+{%-     end %}
 {%-     if HasBaseDiscriminator %}
         this._discriminator = ""{{ DiscriminatorName }}"";
-{%-     endif %}
+{%-     end %}
     }
-{%- endif %}
-    init(_data?: any{% if HandleReferences %}, _mappings?: any{% endif %}) {
+{%- end %}
+    init(_data?: any{% if HandleReferences %}, _mappings?: any{% end %}) {
 {%- if HasInheritance %}
         super.init(_data);
-{%- endif %}
+{%- end %}
 {%- if HasIndexerProperty or HasProperties %}
         if (_data) {
 {%-     if HasIndexerProperty %}
@@ -809,14 +810,14 @@ true
                 if (_data.hasOwnProperty(property))
                     this[property] = _data[property];
             }
-{%-     endif %}
+{%-     end %}
 {%-     for property in Properties %}
             {{ property.ConvertToClassCode | tab }}
 {%-     end %}
         }
-{%- endif %}
+{%- end %}
     }
-    static fromJS(data: any{% if HandleReferences %}, _mappings?: any{% endif %}): {{ ClassName }}{% if HandleReferences %} | null{% endif %} {
+    static fromJS(data: any{% if HandleReferences %}, _mappings?: any{% end %}): {{ ClassName }}{% if HandleReferences %} | null{% end %} {
         data = typeof data === 'object' ? data : {};
 {%- if HandleReferences %}
 {%-   if HasBaseDiscriminator %}
@@ -826,14 +827,14 @@ true
             throw new Error(""The abstract class '{{ derivedClass.ClassName }}' cannot be instantiated."");
 {%-       else %}
             return createInstance<{{ derivedClass.ClassName }}>(data, _mappings, {{ derivedClass.ClassName }});
-{%-       endif %}
+{%-       end %}
 {%-     end %}
-{%-   endif %}
+{%-   end %}
 {%-   if IsAbstract %}
         throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
 {%-   else %}
         return createInstance<{{ ClassName }}>(data, _mappings, {{ ClassName }});
-{%-   endif %}
+{%-   end %}
 {%- else %}
 {%-   if HasBaseDiscriminator %}
 {%-     for derivedClass in DerivedClasses %}
@@ -844,18 +845,18 @@ true
             let result = new {{ derivedClass.ClassName }}();
             result.init(data);
             return result;
-{%-       endif %}
+{%-       end %}
         }
 {%-     end %}
-{%-   endif %}
+{%-   end %}
 {%-     if IsAbstract %}
         throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
 {%-     else %}
         let result = new {{ ClassName }}();
         result.init(data);
         return result;
-{%-     endif %}
-{%- endif %}
+{%-     end %}
+{%- end %}
     }
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
@@ -864,16 +865,16 @@ true
             if (this.hasOwnProperty(property))
                 data[property] = this[property];
         }
-{%- endif %}
+{%- end %}
 {%- if HasDiscriminator %}
         data[""{{ BaseDiscriminator }}""] = this._discriminator; 
-{%- endif %}
+{%- end %}
 {%- for property in Properties %}
         {{ property.ConvertToJavaScriptCode | tab }}
 {%- end %}
 {%- if HasInheritance %}
         super.toJSON(data);
-{%- endif %}
+{%- end %}
         return data; 
     }
 {%- if GenerateCloneMethod %}
@@ -885,26 +886,26 @@ true
         let result = new {{ ClassName }}();
         result.init(json);
         return result;
-{%-   endif %}
+{%-   end %}
     }
-{%- endif %}
+{%- end %}
 }
 {%- if GenerateConstructorInterface %}
 {%-   if HasDescription %}
 /** {{ Description }} */
-{%-   endif %}
-{% if ExportTypes %}export {% endif %}interface I{{ ClassName }}{{ InterfaceInheritance }} {
+{%-   end %}
+{% if ExportTypes %}export {% end %}interface I{{ ClassName }}{{ InterfaceInheritance }} {
 {%-   for property in Properties %}
 {%-       if property.HasDescription %}
     /** {{ property.Description }} */
-{%-       endif %}
-    {{ property.PropertyName }}{% if property.IsOptional %}?{% endif %}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
+{%-       end %}
+    {{ property.PropertyName }}{% if property.IsOptional %}?{% end %}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
 {%-   end %}
 {%-   if HasIndexerProperty %}
     [key: string]: {{ IndexerPropertyValueType }}; 
-{%-   endif %}
+{%-   end %}
 }
-{%- endif %}
+{%- end %}
 ";
 
         Assert.True(_parser.TryParse(source, out var template, out var _));
@@ -974,7 +975,7 @@ class  {
 {% liquid assign cool = true
    if cool
      echo 'welcome to the liquid tag' | upcase
-   endif 
+   end 
 %}
 ";
 
