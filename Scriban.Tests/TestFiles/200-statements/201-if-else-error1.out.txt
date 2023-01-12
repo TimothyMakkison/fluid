@@ -1,0 +1,2 @@
+text(5,30) : error : Error while parsing if statement: Expecting <expression> instead of `
+` in: if <expression> ... end|else|else if
