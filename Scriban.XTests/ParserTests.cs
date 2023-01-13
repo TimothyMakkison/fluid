@@ -343,6 +343,9 @@ def", "at (")]
     }
 
     [Theory]
+    [InlineData(@"{{ 20 | 
+divided_by: 7.0 
+| round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
     public void ShouldParseIntegralNumbers(string source, string expected)
@@ -490,7 +493,7 @@ def", "at (")]
     }
 
     [Theory]
-    [InlineData("{% assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
+    [InlineData(@"{% liquid assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
     public void SizeAppliedToStrings(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -506,8 +509,24 @@ def", "at (")]
 
 
     [Theory]
-    [InlineData("{{ '{{ {% %} }}' }}{% assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
+    [InlineData("{{ '{{ {% %} }}' }}{% liquid assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
     public void StringsCanContainCurlies(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal(expected, rendered);
+    }
+
+
+    [Theory]
+    [InlineData("{{ null }}", "")]
+    public void NullEmitsEmpty(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -524,10 +543,7 @@ def", "at (")]
     public void ShouldSkipNewLinesInTags()
     {
         var source = @"{% 
-if
-true
-or
-false
+if true or false
 -%}
 true
 {%-
@@ -578,13 +594,26 @@ liquid if true or false
 echo true
 end
 %}";
-//        var source = @"{% liquid
-//      assign cool = true
-//   if cool
-//     echo 'welcome to the liquid tag' | upcase
-//   end
-//%}";
 
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+    [Fact]
+    public void ShouldSkipNewLinesInTags5()
+    {
+        var source = @"{% 
+liquid if true or false
+echo true
+end
+%}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
