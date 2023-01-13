@@ -35,7 +35,7 @@ namespace Fluid
         protected static readonly Parser<char> SemiColon = Terms.Char(';');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-        protected static readonly Parser<TextSpan> SameLineString = new SkipOnlyWhiteSpace<TextSpan>(new StringLiteral(StringLiteralQuotes.SingleOrDouble));
+        protected static readonly Parser<TextSpan> SameLineString = ParserExtensions.SkipOnlyWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble));
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");

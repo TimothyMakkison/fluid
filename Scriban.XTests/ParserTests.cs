@@ -4,6 +4,7 @@ using Fluid.Parser;
 using System.Collections.Generic;
 
 namespace Scriban.XTests;
+
 public class ParserTests
 {
 #if COMPILED
@@ -542,13 +543,9 @@ divided_by: 7.0
     [Fact]
     public void ShouldSkipNewLinesInTags()
     {
-        var source = @"{% 
-if true or false
--%}
+        var source = @"{% liquid if true or false -%}
 true
-{%-
-end
-%}";
+{%- end %}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
