@@ -6,7 +6,7 @@ namespace Fluid.Parser
 {
     public class FluidParseContext : ParseContext
     {
-        public FluidParseContext(string text) : base(new Scanner(text), true)
+        public FluidParseContext(string text,bool useNewLines = false) : base(new Scanner(text), useNewLines)
         {
         }
 

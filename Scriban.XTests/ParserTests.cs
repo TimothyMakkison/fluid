@@ -345,8 +345,8 @@ def", "at (")]
 
     [Theory]
     [InlineData(@"{{ 20 | 
-divided_by: 7.0 
-| round: 2 }}", "2.86")]
+divided_by: 7.0 |
+round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
     public void ShouldParseIntegralNumbers(string source, string expected)
@@ -645,6 +645,22 @@ end
         var source = @"{{
 true
 }}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+    [Fact]
+    public void ShouldReadOutput()
+    {
+        var source = @"{{ true }}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -1048,10 +1064,9 @@ class  {
         var source = @"
 {% 
    liquid 
-   echo 
-      'welcome ' | upcase 
-   echo 'to the liquid tag' 
-    | upcase 
+   echo 'welcome ' | upcase 
+   echo 'to the liquid tag' | 
+upcase 
 %}";
 
         Assert.True(_parser.TryParse(source, out var template, out var errors), errors);

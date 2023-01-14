@@ -37,6 +37,33 @@ namespace Fluid
             return new FluidTemplate(statements);
         }
 
+        public static IFluidTemplate ParseScriban(this ScribanParser parser, string template)
+        {
+            var context = new FluidParseContext(template, true);
+
+            var success = parser.Grammar.TryParse(context, out var statements, out var parlotError);
+
+            if (parlotError != null)
+            {
+                // Extract line with error
+                var start = parlotError.Position.Offset - 1;
+                var end = parlotError.Position.Offset;
+                while (start > 0 && template[start] != '\n' && template[start] != '\r') start--;
+                while (end < template.Length && template[end] != '\n') end++;
+                var source = template.Substring(start, end - start).Trim('\n', '\r');
+
+                throw new ParseException($"{parlotError.Message} at {parlotError.Position}\nSource:\n{source}");
+            }
+
+            if (!success)
+            {
+                return null;
+            }
+
+            return new FluidTemplate(statements);
+        }
+
+
         public static bool TryParse(this IParser parser, string template, out IFluidTemplate result, out string error)
         {
             try
