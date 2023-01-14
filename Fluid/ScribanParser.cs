@@ -12,6 +12,7 @@ using System.Runtime.CompilerServices;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using static Parlot.Fluent.Parsers;
+using static Fluid.Parser.ParserExtensions;
 
 namespace Fluid
 {
@@ -35,7 +36,7 @@ namespace Fluid
         protected static readonly Parser<char> SemiColon = Terms.Char(';');
 
         protected static readonly Parser<TextSpan> String = Terms.String(StringLiteralQuotes.SingleOrDouble);
-        protected static readonly Parser<TextSpan> SameLineString = ParserExtensions.SkipOnlyWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble));
+        protected static readonly Parser<TextSpan> SameLineString = SkipOnlyWhiteSpace(new StringLiteral(StringLiteralQuotes.SingleOrDouble));
         protected static readonly Parser<decimal> Number = Terms.Decimal(NumberOptions.AllowSign);
 
         protected static readonly Parser<string> DoubleEquals = Terms.Text("==");
@@ -51,7 +52,7 @@ namespace Fluid
         protected static readonly Parser<string> BinaryOr = Terms.Text("or");
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
-        protected static readonly Parser<string> Identifier = new SkipWhiteSpaceOrLines<TextSpan>(new IdentifierParser()).Then(x => x.ToString());
+        protected static readonly Parser<string> Identifier = SkipWhiteSpaceOrLines(new IdentifierParser()).Then(x => x.ToString());
         
         protected static readonly Parser<string> FuncIdentifier = new SkipOnlyWhiteSpace<TextSpan>(new IdentifierParser()).Then(x => x.ToString());
 
@@ -224,7 +225,7 @@ namespace Fluid
                         return result;
                     });
 
-            var Output = OutputStart.SkipAnd(FilterExpression.And(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd))
+            var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
 
@@ -579,7 +580,7 @@ namespace Fluid
             try
             {
                 error = null;
-                result = this.Parse(template);
+                result = this.ParseScriban(template);
                 return true;
             }
             catch (ParseException e)
