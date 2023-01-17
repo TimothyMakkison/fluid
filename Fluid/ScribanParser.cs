@@ -62,6 +62,7 @@ namespace Fluid
         protected readonly Parser<Expression> CombinatoryExpression; // and | or
         protected readonly Deferred<Expression> Primary = Deferred<Expression>();
         protected readonly Deferred<Expression> FilterExpression = Deferred<Expression>();
+        protected readonly Deferred<Expression> ForgivingFilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
 
@@ -224,6 +225,31 @@ namespace Fluid
 
                         return result;
                     });
+
+            ForgivingFilterExpression.Parser = LogicalExpression
+                .And(ZeroOrMany(
+                   Pipe
+                   .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
+                   .And(ZeroOrOne(Colon.SkipAnd(ArgumentsList)))))
+               .Then((ctx, x) =>
+               {
+                   // Primary
+                   var result = x.Item1;
+
+                   // Filters
+                   foreach (var pipeResult in x.Item2)
+                   {
+                       var identifier = pipeResult.Item1;
+                       var arguments = pipeResult.Item2;
+
+                       result = new FilterExpression(result, identifier, arguments);
+                   }
+
+                   return result;
+               });
+
+            var OutputExpression = ForgivingFilterExpression.And((TagEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
+                .Then<Statement>(static x => new OutputStatement(x.Item1));
 
             var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
@@ -406,7 +432,7 @@ namespace Fluid
                 {
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            })))
+            }).Or(OutputExpression)))
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
                 .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
                 ;
