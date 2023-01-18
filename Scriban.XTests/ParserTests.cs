@@ -269,9 +269,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"abc 
-  {% {{ %}
-def", "at (")]
+    [InlineData(@"abc{% {{ %}def", "at (")]
     [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
 {% if username and username.size > 10 %}
   Wow, {{ username }}, you have a long name!
@@ -289,7 +287,7 @@ def", "at (")]
     public void ShouldFailParseInvalidTemplateWithCorrectLineNumber(string source, string expectedErrorEndString)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
-
+        Assert.False(result);
         Assert.Contains(expectedErrorEndString, errors);
     }
 
@@ -480,6 +478,7 @@ round: 2 }}", "2.86")]
     [InlineData("{% assign my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
     [InlineData("{% assign my_integer = 7 %}{% assign my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
     [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
+    [InlineData("{% assign my_integer = 7 %}{% 20 | divided_by: my_integer %}", "2")]
     public void ShouldChangeVariableType(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -566,7 +565,7 @@ liquid if true or false
 if false
 echo false
 else
-echo true 
+""true""
 end
 end
 %}";
@@ -584,11 +583,36 @@ end
 
 
     [Fact]
+    public void ShouldSkipNewLinesInTags8()
+    {
+        var source = @"
+{%if true or false%}
+{% if false %}
+false
+{% else %}
+""true""
+{% end %}
+{% end %}
+";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Contains("true", rendered);
+    }
+
+
+    [Fact]
     public void ShouldSkipNewLinesInTags2()
     {
         var source = @"{% 
 liquid if true or false
-echo true
+true
 end
 %}";
 
@@ -608,7 +632,7 @@ end
     {
         var source = @"{% 
 liquid if true or false
-echo true
+""true""
 end
 %}";
 

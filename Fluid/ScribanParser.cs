@@ -226,7 +226,7 @@ namespace Fluid
                         return result;
                     });
 
-            ForgivingFilterExpression.Parser = LogicalExpression
+            ForgivingFilterExpression.Parser = LogicalExpression.Then(x=>x)
                 .And(ZeroOrMany(
                    Pipe
                    .SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterPipe))
@@ -343,6 +343,9 @@ namespace Fluid
 
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+
+            var ForgivingAssignement = Identifier.Then(x => x).AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
                         .And(AnyTagsList)
@@ -498,7 +501,7 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(OneOf(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -513,9 +516,9 @@ namespace Fluid
                 {
                     return null;
                 }
-            }));
+            }), OutputExpression));
 
-            var KnownTags = TagStart.SkipAnd(Identifier.ElseError(ErrorMessages.IdentifierAfterTagStart).Switch((context, previous) =>
+            var KnownTags = TagStart.Then(x=>x).SkipAnd(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -530,7 +533,7 @@ namespace Fluid
                 {
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            }));
+            }).Or(OutputExpression).ElseError("An expression or statement is expected"));
 
             AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
