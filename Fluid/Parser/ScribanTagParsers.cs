@@ -1,6 +1,7 @@
 ﻿using Fluid.Ast;
 using Parlot;
 using Parlot.Fluent;
+using System;
 
 namespace Fluid.Parser
 {
@@ -10,6 +11,9 @@ namespace Fluid.Parser
         public static Parser<TagResult> TagEnd(bool skipWhiteSpace = false) => new TagEndParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
+
+        public static ResettingSwitch<T, U> ResettingSwitch<T, U>(this Parser<T> previousParser, Func<ParseContext, T, Parser<U>> action) => new ResettingSwitch<T,U>(previousParser, action);
+
 
         private sealed class TagStartParser : Parser<TagResult>
         {

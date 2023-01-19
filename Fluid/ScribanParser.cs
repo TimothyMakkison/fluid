@@ -251,6 +251,9 @@ namespace Fluid
             var OutputExpression = ForgivingFilterExpression.And((TagEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
                 .Then<Statement>(static x => new OutputStatement(x.Item1));
 
+            var ForgivingOutputExpression = ForgivingFilterExpression.And(TagEnd)
+               .Then<Statement>(static x => new OutputStatement(x.Item1));
+
             var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
                 .Then<Statement>(static x => new OutputStatement(x.Item1))
                 );
@@ -418,9 +421,27 @@ namespace Fluid
                             })
                         ).ElseError("Invalid 'for' tag");
 
+            var f = Identifier.ResettingSwitch((context, previous) =>
+            {
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
+                // as inner tags in blocks like {% if %} TagsList {% end $}
+
+                var tagName = previous;
+
+                if (RegisteredTags.TryGetValue(tagName, out var tag))
+                {
+                    return tag.ElseError($"Invalid {tagName} statement");
+                }
+                else
+                {
+                    return null;
+                    //throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                }
+            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected");
+
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
-                .SkipAnd(OneOrMany(Identifier.Switch((context, previous) =>
+                .SkipAnd(OneOrMany(ForgivingAssignement.Or(ForgivingOutputExpression).Or(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -435,7 +456,7 @@ namespace Fluid
                 {
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            }).Or(OutputExpression)))
+            }))))
                 .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
                 .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
                 ;
@@ -501,7 +522,7 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(OneOf(Identifier.Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(OneOf(ForgivingAssignement.Or(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -516,9 +537,10 @@ namespace Fluid
                 {
                     return null;
                 }
-            }), OutputExpression));
+            }))));
 
-            var KnownTags = TagStart.Then(x=>x).SkipAnd(Identifier.Switch((context, previous) =>
+            var KnownTags = TagStart.Then(x=>x).SkipAnd(
+                Identifier.ResettingSwitch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -527,13 +549,16 @@ namespace Fluid
 
                 if (RegisteredTags.TryGetValue(tagName, out var tag))
                 {
-                    return tag;
+                    return tag.ElseError($"Invalid {tagName} statement");
                 }
                 else
                 {
-                    throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                    return null;
+                    //throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            }).Or(OutputExpression).ElseError("An expression or statement is expected"));
+            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected"));
+
+            //var AnyTags = KnownTags;
 
             AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found

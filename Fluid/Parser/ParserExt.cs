@@ -1,5 +1,7 @@
 ﻿using Parlot;
+using Parlot.Compilation;
 using Parlot.Fluent;
+using System;
 
 namespace Fluid.Parser
 {
@@ -38,6 +40,7 @@ namespace Fluid.Parser
             return false;
         }
     }
+
     public sealed class SkipOnlyWhiteSpace<T> : Parser<T>
     {
         private readonly Parser<T> _parser;
@@ -62,6 +65,47 @@ namespace Fluid.Parser
             }
 
             context.Scanner.Cursor.ResetPosition(start);
+
+            return false;
+        }
+    }
+
+    public sealed class ResettingSwitch<T, U> : Parser<U>
+    {
+
+        private readonly Parser<T> _previousParser;
+        private readonly Func<ParseContext, T, Parser<U>> _action;
+        public ResettingSwitch(Parser<T> previousParser, Func<ParseContext, T, Parser<U>> action)
+        {
+            _previousParser = previousParser ?? throw new ArgumentNullException(nameof(previousParser));
+            _action = action ?? throw new ArgumentNullException(nameof(action));
+        }
+
+        public override bool Parse(ParseContext context, ref ParseResult<U> result)
+        {
+            var previousResult = new ParseResult<T>();
+            var start = context.Scanner.Cursor.Position;
+
+            if (!_previousParser.Parse(context, ref previousResult))
+            {
+                return false;
+            }
+
+            var nextParser = _action(context, previousResult.Value);
+
+            if (nextParser == null)
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+                return false;
+            }
+
+            var parsed = new ParseResult<U>();
+
+            if (nextParser.Parse(context, ref parsed))
+            {
+                result.Set(parsed.Start, parsed.End, parsed.Value);
+                return true;
+            }
 
             return false;
         }

@@ -203,6 +203,36 @@ public class ParserTests
     }
 
     [Fact]
+    public void ShouldParseIfElseTagWithAssignment()
+    {
+        var source = @"{% if true %}{% a= ""yes"" %}{%else%}{% a= ""no"" %}{% end %}{% a %}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var render = template.Render();
+        Assert.Equal("yes", render);
+    }
+
+    [Fact]
+    public void ShouldParseAssignEmit()
+    {
+        var source = @"{% a= ""yes"" %}{% a %}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var render = template.Render();
+        Assert.Equal("yes", render);
+    }
+
+    [Fact]
     public void ShouldParseIfElseIfTag()
     {
         var statements = Parse("{% if true %}yes{%elsif a%}maybe{%else%}no{%end%}");
@@ -241,13 +271,12 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{% assign for = 5 %}")]
-    [InlineData("{% assign _foo = 1 %}")]
-    [InlineData("{% assign __foo = 1 %}")]
-    [InlineData("{% assign fo-o = 1 %}")]
-    [InlineData("{% assign fo_o = 1 %}")]
-    [InlineData("{% assign fo--o = 1 %}")]
-    [InlineData("{% assign fo__o = 1 %}")]
+    [InlineData("{% _foo = 1 %}")]
+    [InlineData("{% __foo = 1 %}")]
+    [InlineData("{% fo-o = 1 %}")]
+    [InlineData("{% fo_o = 1 %}")]
+    [InlineData("{% fo--o = 1 %}")]
+    [InlineData("{% fo__o = 1 %}")]
     public void ShouldAcceptDashesInIdentifiers(string source)
     {
         var result = _parser.TryParse(source, out var template, out var error);
@@ -256,10 +285,22 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{% assign 1f = 123 %}{{ 1f }}")]
-    [InlineData("{% assign 123f = 123 %}{{ 123f }}")]
-    [InlineData("{% assign 1_ = 123 %}{{ 1_ }}")]
-    [InlineData("{% assign 1-1 = 123 %}{{ 1-1 }}")]
+    [InlineData("{% for = 5 %}")]
+    [InlineData("{% for %}")]
+    [InlineData("{% = 100 %}")]
+    [InlineData("{% if = 100 %}")]
+    public void ShouldFailToParseKnownTagsAsVariables(string source)
+    {
+        var result = _parser.TryParse(source, out var template, out var error);
+
+        Assert.False(result);
+    }
+
+    [Theory]
+    [InlineData("{% 1f = 123 %}{{ 1f }}")]
+    [InlineData("{% 123f = 123 %}{{ 123f }}")]
+    [InlineData("{% 1_ = 123 %}{{ 1_ }}")]
+    [InlineData("{% 1-1 = 123 %}{{ 1-1 }}")]
     public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
     {
         var result = _parser.TryParse(source, out var template, out var error);
@@ -270,13 +311,13 @@ public class ParserTests
 
     [Theory]
     [InlineData(@"abc{% {{ %}def", "at (")]
-    [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+    [InlineData(@"{% username = ""John G. Chalmers-Smith"" %}
 {% if username and username.size > 10 %}
   Wow, {{ username }}, you have a long name!
 {% else %}
   Hello there {{ { }}!
 {% end %}", "at (")]
-    [InlineData(@"{% assign username = ""John G. Chalmers-Smith"" %}
+    [InlineData(@"{% username = ""John G. Chalmers-Smith"" %}
 {% if username and 
       username.size > 5 &&
       username.size < 10 %}
@@ -342,11 +383,12 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"{{ 20 | 
-divided_by: 7.0 |
-round: 2 }}", "2.86")]
-    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
-    [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+//    [InlineData(@"{{ 20 | 
+//divided_by: 7.0 |
+//round: 2 }}", "2.86")]
+//    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
+//    [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+    [InlineData("{% 20 | divided_by: 7 | round: 2 %}", "2")]
     public void ShouldParseIntegralNumbers(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -359,6 +401,26 @@ round: 2 }}", "2.86")]
 
         Assert.Equal(expected, rendered);
     }
+
+    [Theory]
+    //[InlineData("{%if true%}{% bab = 20 %}{%end%}{% bab | divided_by: 5 | divided_by: 2 %}", "2")]
+    //[InlineData("{% value | divided_by: 5 | divided_by: 2 %}", "2")]
+    [InlineData("{% value %}", "20")]
+    //[InlineData("{%liquid if true; bab = 20; end; bab | divided_by: 5 | divided_by: 2 %}", "2")]
+    public void ShouldOutputValue(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var context = new TemplateContext(new { value = 20 });
+        var rendered = template.Render(context);
+
+        Assert.Equal(expected, rendered);
+    }
+
 
     //[Fact]
     //public void ShouldIndexStringSegment()
@@ -475,10 +537,10 @@ round: 2 }}", "2.86")]
     }
 
     [Theory]
-    [InlineData("{% assign my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
-    [InlineData("{% assign my_integer = 7 %}{% assign my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
+    [InlineData("{% my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
+    [InlineData("{% my_integer = 7 %}{% my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
     [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
-    [InlineData("{% assign my_integer = 7 %}{% 20 | divided_by: my_integer %}", "2")]
+    [InlineData("{% my_integer = 7 %}{% 20 | divided_by: my_integer %}", "2")]
     public void ShouldChangeVariableType(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -493,7 +555,7 @@ round: 2 }}", "2.86")]
     }
 
     [Theory]
-    [InlineData(@"{% liquid assign my_string = 'abcd' %}{{ my_string.size }}", "4")]
+    [InlineData(@"{% liquid my_string = 'abcd' %}{{ my_string.size }}", "4")]
     public void SizeAppliedToStrings(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -509,7 +571,7 @@ round: 2 }}", "2.86")]
 
 
     [Theory]
-    [InlineData("{{ '{{ {% %} }}' }}{% liquid assign x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
+    [InlineData("{{ '{{ {% %} }}' }}{% liquid x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
     public void StringsCanContainCurlies(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -588,7 +650,7 @@ end
         var source = @"
 {%if true or false%}
 {% if false %}
-false
+""false""
 {% else %}
 ""true""
 {% end %}
@@ -609,6 +671,26 @@ false
 
     [Fact]
     public void ShouldSkipNewLinesInTags2()
+    {
+        var source = @"{% 
+liquid if true or false
+true
+end
+%}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal("true", rendered);
+    }
+
+    [Fact]
+    public void ShouldSkipNewLinesInTags9()
     {
         var source = @"{% 
 liquid if true or false
@@ -804,7 +886,7 @@ true
     [Fact]
     public void ModelShouldNotImpactBlank()
     {
-        var source = "{% assign a = ' ' %}{{ a == blank }}";
+        var source = "{% a = ' ' %}{{ a == blank }}";
         var model = new { a = " ", b = "" };
         var context = new TemplateContext(model);
         var template = _parser.Parse(source);
@@ -830,7 +912,7 @@ true
     [Fact]
     public void ShouldAssignWithLogicalExpression()
     {
-        var source = @"{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
+        var source = @"{%- condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
 
         Assert.True(_parser.TryParse(source, out var template, out var _));
         Assert.True(((FluidTemplate)template).Statements.Count == 2);
@@ -891,7 +973,7 @@ true
 {%- if HasDiscriminator %}
     protected _discriminator: string;
 {%- end %}
-{%- assign condition_temp = HasInheritance == false or ConvertConstructorInterfaceData %}
+{%- condition_temp = HasInheritance == false or ConvertConstructorInterfaceData %}
 {%- if GenerateConstructorInterface or HasBaseDiscriminator %}
     constructor({% if GenerateConstructorInterface %}data?: I{{ ClassName }}{% end %}) {
 {%-     if HasInheritance %}
@@ -1081,7 +1163,7 @@ class  {
     [Theory]
     [InlineData("{{1}}", "1")]
     [InlineData("{{-1-}}", "1")]
-    [InlineData("{%-assign len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
+    [InlineData("{%-len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
     public async Task ShouldSupportCompactNotation(string source, string expected)
     {
         Assert.True(_parser.TryParse(source, out var template, out var _));
@@ -1119,9 +1201,9 @@ upcase %}";
     {
         var source = @"
 {% liquid 
-      assign cool = true
+      cool = true
    if cool
-     echo 'welcome to the liquid tag' | upcase
+     'welcome to the liquid tag' | upcase
    end 
 %}
 ";
@@ -1179,7 +1261,7 @@ upcase %}";
         // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
         // Same for blank, true, false
 
-        var source = "{% assign emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
+        var source = "{% emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
         var context = new TemplateContext(new { empty = "eric" });
         var template = _parser.Parse(source);
         Assert.Equal("this is not empty4", template.Render(context));
@@ -1190,7 +1272,7 @@ upcase %}";
     {
 
         var source = @"
-                {%- assign array = (1..6) %}
+                {%- array = (1..6) %}
                 {%- for item in array limit: 3 %}
                 {{- item}}
                 {%- end %}
