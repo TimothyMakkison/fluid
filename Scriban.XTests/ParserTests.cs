@@ -209,7 +209,7 @@ public class ParserTests
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -224,7 +224,7 @@ public class ParserTests
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -256,7 +256,7 @@ public class ParserTests
     public void ShouldSucceedParseValidTemplate(string source)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
     }
@@ -281,7 +281,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var error);
 
-        Assert.True(result);
+        Assert.True(result, error);
     }
 
     [Theory]
@@ -354,7 +354,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var error);
 
-        Assert.True(result);
+        Assert.True(result, error);
         Assert.NotNull(template);
         Assert.Null(error);
     }
@@ -377,7 +377,7 @@ public class ParserTests
         var context = new TemplateContext();
         context.SetValue("food", "cake");
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
     }
@@ -393,7 +393,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -411,7 +411,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -545,7 +545,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -560,7 +560,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -576,7 +576,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -592,7 +592,7 @@ public class ParserTests
     {
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -900,7 +900,7 @@ true
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
-        Assert.True(result);
+        Assert.True(result, errors);
         Assert.NotNull(template);
         Assert.Null(errors);
 
@@ -1274,7 +1274,7 @@ upcase %}";
         var source = @"
                 {%- array = (1..6) %}
                 {%- for item in array limit: 3 %}
-                {{- item}}
+                {{ item}}
                 {%- end %}
                 {%- for item in array offset: continue limit: 2 %}
                 {{- item}}

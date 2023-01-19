@@ -1,13 +1,15 @@
 ﻿using Parlot;
-using Parlot.Compilation;
 using Parlot.Fluent;
 using System;
+using System.Collections.Generic;
 
 namespace Fluid.Parser
 {
     public static class ParserExtensions
     {
         public static SkipWhiteSpaceOrLines<T> SkipWhiteSpaceOrLines<T>(Parser<T> parser) => new SkipWhiteSpaceOrLines<T>(parser);
+
+        public static ResettingNot<T> ResettingNot<T>(Parser<T> parser) => new ResettingNot<T>(parser);
 
         public static SkipOnlyWhiteSpace<T> SkipOnlyWhiteSpace<T>(Parser<T> parser) => new SkipOnlyWhiteSpace<T>(parser);
     }
@@ -107,6 +109,78 @@ namespace Fluid.Parser
                 return true;
             }
 
+            return false;
+        }
+    }
+    public sealed class ZeroOrManyWhile<T, U> : Parser<List<T>>
+    {
+        private readonly Parser<T> _parser;
+        private readonly Parser<U> _predicate;
+
+        public ZeroOrManyWhile(Parser<T> parser, Parser<U> predicate)
+        {
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+            _predicate= predicate ?? throw new ArgumentNullException(nameof(predicate));
+        }
+
+        public override bool Parse(ParseContext context, ref ParseResult<List<T>> result)
+        {
+            context.EnterParser(this);
+
+            var results = new List<T>();
+
+            var start = 0;
+            var end = 0;
+
+            var first = true;
+            var parsed = new ParseResult<T>();
+
+            var predicated = new ParseResult<U>();
+
+            // TODO: it's not restoring an intermediate failed text position
+            // is the inner parser supposed to be clean?
+
+            var position = context.Scanner.Cursor.Position;
+
+            while (!_predicate.Parse(context, ref predicated) && _parser.Parse(context, ref parsed))
+            {
+                if (first)
+                {
+                    first = false;
+                    start = parsed.Start;
+                }
+
+                end = parsed.End;
+                results.Add(parsed.Value);
+            }
+
+            result = new ParseResult<List<T>>(start, end, results);
+            return true;
+        }
+    }
+
+    public sealed class ResettingNot<T> : Parser<T>
+    {
+        private readonly Parser<T> _parser;
+
+        public ResettingNot(Parser<T> parser)
+        {
+            _parser = parser ?? throw new ArgumentNullException(nameof(parser));
+        }
+
+        public override bool Parse(ParseContext context, ref ParseResult<T> result)
+        {
+            context.EnterParser(this);
+
+            var start = context.Scanner.Cursor.Position;
+
+            if (!_parser.Parse(context, ref result))
+            {
+                context.Scanner.Cursor.ResetPosition(start);
+                return true;
+            }
+
+            context.Scanner.Cursor.ResetPosition(start);
             return false;
         }
     }

@@ -65,6 +65,8 @@ namespace Fluid
         protected readonly Deferred<Expression> ForgivingFilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<List<Statement>> ElsifAnyTagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<List<Statement>> ElseAnyTagsList = Deferred<List<Statement>>();
 
         protected static readonly Parser<TagResult> OutputStart = ScribanTagParsers.OutputTagStart(); // {{
         protected static readonly Parser<TagResult> OutputEnd = ScribanTagParsers.OutputTagEnd(true);
@@ -351,13 +353,13 @@ namespace Fluid
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
-                        .And(AnyTagsList)
+                        .And(ElsifAnyTagsList)
                         .And(ZeroOrMany(
-                            TagStart.SkipAnd(Terms.Text("elsif")).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(AnyTagsList))
+                            TagStart.Then(x=>x).SkipAnd(Terms.Text("elsif")).Then(x=>x).SkipAnd(LogicalExpression).AndSkip(TagEnd).And(ElsifAnyTagsList))
                             .Then(x => x.Select(e => new ElseIfStatement(e.Item1, e.Item2)).ToList()))
-                        .And(ZeroOrOne(
-                            CreateTag("else").SkipAnd(AnyTagsList))
-                            .Then(x => x != null ? new ElseStatement(x) : null))
+                        .Then(x=>x).And(ZeroOrOne(
+                            CreateTag("else").SkipAnd(ElseAnyTagsList))
+                            .Then(x => x != null ? new ElseStatement(x) : null)).Then(x=>x)
                         .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
@@ -522,7 +524,7 @@ namespace Fluid
                 return ReadFromList(modifiers);
             }
 
-            var AnyTags = TagStart.SkipAnd(OneOf(ForgivingAssignement.Or(Identifier.Switch((context, previous) =>
+            var AnyTags = TagStart.SkipAnd(OneOf(ForgivingAssignement, Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
                 // as inner tags in blocks like {% if %} TagsList {% end $}
@@ -537,7 +539,24 @@ namespace Fluid
                 {
                     return null;
                 }
-            }))));
+            }), ForgivingOutputExpression));
+
+            var AnyTagsReset = TagStart.SkipAnd(OneOf(ForgivingAssignement, Identifier.ResettingSwitch((context, previous) =>
+            {
+                // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
+                // as inner tags in blocks like {% if %} TagsList {% end $}
+
+                var tagName = previous;
+
+                if (RegisteredTags.TryGetValue(tagName, out var tag))
+                {
+                    return tag;
+                }
+                else
+                {
+                    return null;
+                }
+            }), ForgivingOutputExpression));
 
             var KnownTags = TagStart.Then(x=>x).SkipAnd(
                 Identifier.ResettingSwitch((context, previous) =>
@@ -559,6 +578,14 @@ namespace Fluid
             }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected"));
 
             //var AnyTags = KnownTags;
+            ElseAnyTagsList.Parser = ZeroOrMany(ResettingNot(CreateTag("end")).SkipAnd(
+                Output.Or(AnyTagsReset).Or(Text)));
+
+            ElsifAnyTagsList.Parser = ZeroOrMany(ResettingNot(CreateTag("else").Or(CreateTag("end")).Or(TagStart.SkipAnd(Terms.Text("elsif")))).Then(x => x).SkipAnd(
+                Output.Or(AnyTagsReset).Or(Text))).Then(x=>x);
+
+            //ElsifAnyTagsList.Parser = ZeroOrMany((ResettingNot(CreateTag("else").Or(CreateTag("end")).Or(TagStart.SkipAnd(Terms.Text("elsif"))))).SkipAnd(
+            // Output.Or(AnyTagsReset).Or(Text)));
 
             AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
