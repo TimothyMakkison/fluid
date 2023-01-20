@@ -34,7 +34,7 @@ public class ParserTests
     public void ShouldFiltersWithNamedArguments()
     {
 
-        var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
+        var statements = Parse("{% a | b: c:1, 'value', d: 3 %}");
         Assert.Single(statements);
 
         var outputStatement = statements[0] as OutputStatement;
@@ -68,7 +68,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseOutput()
     {
-        var statements = Parse("{{ 1 }}");
+        var statements = Parse("{% 1 %}");
 
         var outputStatement = statements[0] as OutputStatement;
 
@@ -77,9 +77,9 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ a }}")]
-    [InlineData("{{ a.b }}")]
-    [InlineData("{{ a.b[1] }}")]
+    [InlineData("{% a %}")]
+    [InlineData("{% a.b %}")]
+    [InlineData("{% a.b[1] %}")]
     public void ShouldParseOutputWithMember(string source)
     {
         var statements = Parse(source);
@@ -144,11 +144,11 @@ public class ParserTests
     [Fact]
     public void ShouldParseRaw()
     {
-        var statements = Parse(@"{% raw %} on {{ this }} and {{{ that }}} {% endraw %}");
+        var statements = Parse(@"{% raw %} on {% this %} and {{% that }%} {% endraw %}");
 
         Assert.Single(statements);
         Assert.IsType<RawStatement>(statements.ElementAt(0));
-        Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
+        Assert.Equal(" on {% this %} and {{% that }%} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
     }
 
     [Fact]
@@ -164,11 +164,11 @@ public class ParserTests
     [Fact]
     public void ShouldParseComment()
     {
-        var statements = Parse(@"{% comment %} on {{ this }} and {{{ that }}} {% endcomment %}");
+        var statements = Parse(@"{% comment %} on {% this %} and {{% that }%} {% endcomment %}");
 
         Assert.Single(statements);
         Assert.IsType<CommentStatement>(statements.ElementAt(0));
-        Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
+        Assert.Equal(" on {% this %} and {{% that }%} ", (statements.ElementAt(0) as CommentStatement).Text.ToString());
     }
 
     [Fact]
@@ -268,8 +268,8 @@ public class ParserTests
     [Theory]
     [InlineData("abc { def")]
     [InlineData("abc } def")]
-    [InlineData("abc }} def")]
-    [InlineData("abc { def }}")]
+    [InlineData("abc %} def")]
+    [InlineData("abc { def %}")]
     [InlineData("abc %} def")]
     [InlineData("abc %}")]
     [InlineData("%} def")]
@@ -283,7 +283,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("abc {% {{ %} def")]
+    [InlineData("abc {% {% %} def")]
     [InlineData("abc {% { %} def")]
     public void ShouldFailParseInvalidTemplate(string source)
     {
@@ -318,10 +318,10 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{% 1f = 123 %}{{ 1f }}")]
-    [InlineData("{% 123f = 123 %}{{ 123f }}")]
-    [InlineData("{% 1_ = 123 %}{{ 1_ }}")]
-    [InlineData("{% 1-1 = 123 %}{{ 1-1 }}")]
+    [InlineData("{% 1f = 123 %}{% 1f %}")]
+    [InlineData("{% 123f = 123 %}{% 123f %}")]
+    [InlineData("{% 1_ = 123 %}{% 1_ %}")]
+    [InlineData("{% 1-1 = 123 %}{% 1-1 %}")]
     public void ShouldAcceptDigitsAtStartOfIdentifiers(string source)
     {
         var result = _parser.TryParse(source, out var template, out var error);
@@ -331,18 +331,18 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"abc{% {{ %}def", "at (")]
+    [InlineData(@"abc{% {% %}def", "at (")]
     [InlineData(@"{% username = ""John G. Chalmers-Smith"" %}
 {% if username and username.size > 10 %}
-  Wow, {{ username }}, you have a long name!
+  Wow, {% username %}, you have a long name!
 {% else %}
-  Hello there {{ { }}!
+  Hello there {% { %}!
 {% end %}", "at (")]
     [InlineData(@"{% username = ""John G. Chalmers-Smith"" %}
 {% if username and 
       username.size > 5 &&
       username.size < 10 %}
-  Wow, {{ username }}, you have a longish name!
+  Wow, {% username %}, you have a longish name!
 {% else %}
   Hello there!
 {% end %}", "at (")]
@@ -404,11 +404,11 @@ public class ParserTests
     }
 
     [Theory]
-//    [InlineData(@"{{ 20 | 
+//    [InlineData(@"{% 20 | 
 //divided_by: 7.0 |
-//round: 2 }}", "2.86")]
-//    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
-//    [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+//round: 2 %}", "2.86")]
+//    [InlineData("{% 20 | divided_by: 7.0 | round: 2 %}", "2.86")]
+//    [InlineData("{% 20 | divided_by: 7 | round: 2 %}", "2")]
     [InlineData("{% 20 | divided_by: 7 | round: 2 %}", "2")]
     public void ShouldParseIntegralNumbers(string source, string expected)
     {
@@ -460,7 +460,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseCurlyBraceInOutputStatements()
     {
-        Parse("{{ 'on {0}' }}");
+        Parse("{% 'on {0}' %}");
     }
 
     [Fact]
@@ -473,7 +473,7 @@ public class ParserTests
             Doubles = new List<double> { 1.1, 2.2, 3.3 }
         };
 
-        var template = "{{Doubles |map |uniq}}";
+        var template = "{%Doubles |map |uniq%}";
 
         if (_parser.TryParse(template, out var result))
         {
@@ -489,7 +489,7 @@ public class ParserTests
             name = "Tobi"
         };
 
-        var source = "{{name}}";
+        var source = "{%name%}";
 
         _parser.TryParse(source, out var template);
 
@@ -512,8 +512,8 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ 'a\\nb' }}", "a\nb")]
-    [InlineData("{{ 'a\\tb' }}", "a\tb")]
+    [InlineData("{% 'a\\nb' %}", "a\nb")]
+    [InlineData("{% 'a\\tb' %}", "a\tb")]
     public void ShouldParseEscapeSequences(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -528,8 +528,8 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ 'a\nb' }}", "a\nb")]
-    [InlineData("{{ 'a\r\nb' }}", "a\r\nb")]
+    [InlineData("{% 'a\nb' %}", "a\nb")]
+    [InlineData("{% 'a\r\nb' %}", "a\r\nb")]
     public void ShouldParseLineBreaksInStringLiterals(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -544,7 +544,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ -3 }}", "-3")]
+    [InlineData("{% -3 %}", "-3")]
     public void ShouldParseNegativeNumbers(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -558,9 +558,9 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{% my_integer = 7 %}{{ 20 | divided_by: my_integer }}", "2")]
-    [InlineData("{% my_integer = 7 %}{% my_float = my_integer | times: 1.0 %}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
-    [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
+    [InlineData("{% my_integer = 7 %}{% 20 | divided_by: my_integer %}", "2")]
+    [InlineData("{% my_integer = 7 %}{% my_float = my_integer | times: 1.0 %}{% 20 | divided_by: my_float | round: 5 %}", "2.85714")]
+    [InlineData("{% 183.357 | times: 12 %}", "2200.284")]
     [InlineData("{% my_integer = 7 %}{% 20 | divided_by: my_integer %}", "2")]
     public void ShouldChangeVariableType(string source, string expected)
     {
@@ -576,7 +576,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"{% liquid my_string = 'abcd' %}{{ my_string.size }}", "4")]
+    [InlineData(@"{% liquid my_string = 'abcd' %}{% my_string.size %}", "4")]
     public void SizeAppliedToStrings(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -592,7 +592,7 @@ public class ParserTests
 
 
     [Theory]
-    [InlineData("{{ '{{ {% %} }}' }}{% liquid x = '{{ {% %} }}' %}{{ x }}", "{{ {% %} }}{{ {% %} }}")]
+    [InlineData("{% '{% {% %} %}' %}{% liquid x = '{% {% %} %}' %}{% x %}", "{% {% %} %}{% {% %} %}")]
     public void StringsCanContainCurlies(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -608,7 +608,7 @@ public class ParserTests
 
 
     [Theory]
-    [InlineData("{{ null }}", "")]
+    [InlineData("{% null %}", "")]
     public void NullEmitsEmpty(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -787,9 +787,9 @@ liquid ""Hey""
     [Fact]
     public void ShouldSkipNewLinesInOutput()
     {
-        var source = @"{{
+        var source = @"{%
 true
-}}";
+%}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -805,7 +805,7 @@ true
     [Fact]
     public void ShouldReadOutput()
     {
-        var source = @"{{ true }}";
+        var source = @"{% true %}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -907,7 +907,7 @@ true
     [Fact]
     public void ModelShouldNotImpactBlank()
     {
-        var source = "{% a = ' ' %}{{ a == blank }}";
+        var source = "{% a = ' ' %}{% a == blank %}";
         var model = new { a = " ", b = "" };
         var context = new TemplateContext(model);
         var template = _parser.Parse(source);
@@ -933,7 +933,7 @@ true
     [Fact]
     public void ShouldAssignWithLogicalExpression()
     {
-        var source = @"{%- condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{{ condition_temp }}";
+        var source = @"{%- condition_temp = HasInheritance == false or ConvertConstructorInterfaceData | append: 'o' %}{% condition_temp %}";
 
         Assert.True(_parser.TryParse(source, out var template, out var _));
         Assert.True(((FluidTemplate)template).Statements.Count == 2);
@@ -979,24 +979,24 @@ true
     {
         var source = @"
 {%- if HasDescription %}
-/** {{ Description }} */
+/** {% Description %} */
 {%- end %}
-{% if ExportTypes %}export {% end %}{% if IsAbstract %}abstract {% end %}class {{ ClassName }}{{ Inheritance }} {
+{% if ExportTypes %}export {% end %}{% if IsAbstract %}abstract {% end %}class {% ClassName %}{% Inheritance %} {
 {%- for property in Properties %}
 {%-   if property.HasDescription %}
-    /** {{ property.Description }} */
+    /** {% property.Description %} */
 {%-   end %}
-    {% if property.IsReadOnly %}readonly {% end %}{{ property.PropertyName }}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% end %}: {{ property.Type }}{{ property.TypePostfix }};
+    {% if property.IsReadOnly %}readonly {% end %}{% property.PropertyName %}{% if property.IsOptional %}?{% elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false %}!{% end %}: {% property.Type %}{% property.TypePostfix %};
 {%- end %}
 {%- if HasIndexerProperty %}
-    [key: string]: {{ IndexerPropertyValueType }}; 
+    [key: string]: {% IndexerPropertyValueType %}; 
 {%- end %}
 {%- if HasDiscriminator %}
     protected _discriminator: string;
 {%- end %}
 {%- condition_temp = HasInheritance == false or ConvertConstructorInterfaceData %}
 {%- if GenerateConstructorInterface or HasBaseDiscriminator %}
-    constructor({% if GenerateConstructorInterface %}data?: I{{ ClassName }}{% end %}) {
+    constructor({% if GenerateConstructorInterface %}data?: I{% ClassName %}{% end %}) {
 {%-     if HasInheritance %}
         super({% if GenerateConstructorInterface %}data{% end %});
 {%-     end %}
@@ -1012,25 +1012,25 @@ true
 {%-             for property in Properties %}
 {%-                 if property.SupportsConstructorConversion %}
 {%-                     if property.IsArray %}
-            if (data.{{ property.PropertyName }}) {
-                this.{{ property.PropertyName }} = [];
-                for (let i = 0; i < data.{{ property.PropertyName }}.length; i++) {
-                    let item = data.{{ property.PropertyName }}[i];
-                    this.{{ property.PropertyName }}[i] = item && !(<any>item).toJSON ? new {{ property.ArrayItemType }}(item) : <{{ property.ArrayItemType }}>item;
+            if (data.{% property.PropertyName %}) {
+                this.{% property.PropertyName %} = [];
+                for (let i = 0; i < data.{% property.PropertyName %}.length; i++) {
+                    let item = data.{% property.PropertyName %}[i];
+                    this.{% property.PropertyName %}[i] = item && !(<any>item).toJSON ? new {% property.ArrayItemType %}(item) : <{% property.ArrayItemType %}>item;
                 }
             }
 {%-                     elsif property.IsDictionary %}
-            if (data.{{ property.PropertyName }}) {
-                this.{{ property.PropertyName }} = {};
-                for (let key in data.{{ property.PropertyName }}) {
-                    if (data.{{ property.PropertyName }}.hasOwnProperty(key)) {
-                        let item = data.{{ property.PropertyName }}[key];
-                        this.{{ property.PropertyName }}[key] = item && !(<any>item).toJSON ? new {{ property.DictionaryItemType }}(item) : <{{ property.DictionaryItemType }}>item;
+            if (data.{% property.PropertyName %}) {
+                this.{% property.PropertyName %} = {};
+                for (let key in data.{% property.PropertyName %}) {
+                    if (data.{% property.PropertyName %}.hasOwnProperty(key)) {
+                        let item = data.{% property.PropertyName %}[key];
+                        this.{% property.PropertyName %}[key] = item && !(<any>item).toJSON ? new {% property.DictionaryItemType %}(item) : <{% property.DictionaryItemType %}>item;
                     }
                 }
             }
 {%-                     else %}
-            this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }}; 
+            this.{% property.PropertyName %} = data.{% property.PropertyName %} && !(<any>data.{% property.PropertyName %}).toJSON ? new {% property.Type %}(data.{% property.PropertyName %}) : <{% property.Type %}>this.{% property.PropertyName %}; 
 {%-                     end %}
 {%-                 end %}
 {%-             end %}
@@ -1041,13 +1041,13 @@ true
         {% if GenerateConstructorInterface %}if (!data) {% end %}{
 {%-         for property in Properties %}
 {%-             if property.HasDefaultValue %}
-            this.{{ property.PropertyName }} = {{ property.DefaultValue }};
+            this.{% property.PropertyName %} = {% property.DefaultValue %};
 {%-             end %}
 {%-         end %}
         }
 {%-     end %}
 {%-     if HasBaseDiscriminator %}
-        this._discriminator = ""{{ DiscriminatorName }}"";
+        this._discriminator = ""{% DiscriminatorName %}"";
 {%-     end %}
     }
 {%- end %}
@@ -1064,37 +1064,37 @@ true
             }
 {%-     end %}
 {%-     for property in Properties %}
-            {{ property.ConvertToClassCode | tab }}
+            {% property.ConvertToClassCode | tab %}
 {%-     end %}
         }
 {%- end %}
     }
-    static fromJS(data: any{% if HandleReferences %}, _mappings?: any{% end %}): {{ ClassName }}{% if HandleReferences %} | null{% end %} {
+    static fromJS(data: any{% if HandleReferences %}, _mappings?: any{% end %}): {% ClassName %}{% if HandleReferences %} | null{% end %} {
         data = typeof data === 'object' ? data : {};
 {%- if HandleReferences %}
 {%-   if HasBaseDiscriminator %}
 {%-     for derivedClass in DerivedClasses %}
-        if (data[""{{ BaseDiscriminator }}""] === ""{{ derivedClass.Discriminator }}"")
+        if (data[""{% BaseDiscriminator %}""] === ""{% derivedClass.Discriminator %}"")
 {%-       if derivedClass.IsAbstract %}
-            throw new Error(""The abstract class '{{ derivedClass.ClassName }}' cannot be instantiated."");
+            throw new Error(""The abstract class '{% derivedClass.ClassName %}' cannot be instantiated."");
 {%-       else %}
-            return createInstance<{{ derivedClass.ClassName }}>(data, _mappings, {{ derivedClass.ClassName }});
+            return createInstance<{% derivedClass.ClassName %}>(data, _mappings, {% derivedClass.ClassName %});
 {%-       end %}
 {%-     end %}
 {%-   end %}
 {%-   if IsAbstract %}
-        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+        throw new Error(""The abstract class '{% ClassName %}' cannot be instantiated."");
 {%-   else %}
-        return createInstance<{{ ClassName }}>(data, _mappings, {{ ClassName }});
+        return createInstance<{% ClassName %}>(data, _mappings, {% ClassName %});
 {%-   end %}
 {%- else %}
 {%-   if HasBaseDiscriminator %}
 {%-     for derivedClass in DerivedClasses %}
-        if (data[""{{ BaseDiscriminator }}""] === ""{{ derivedClass.Discriminator }}"") {
+        if (data[""{% BaseDiscriminator %}""] === ""{% derivedClass.Discriminator %}"") {
 {%-       if derivedClass.IsAbstract %}
-            throw new Error(""The abstract class '{{ derivedClass.ClassName }}' cannot be instantiated."");
+            throw new Error(""The abstract class '{% derivedClass.ClassName %}' cannot be instantiated."");
 {%-       else %}
-            let result = new {{ derivedClass.ClassName }}();
+            let result = new {% derivedClass.ClassName %}();
             result.init(data);
             return result;
 {%-       end %}
@@ -1102,9 +1102,9 @@ true
 {%-     end %}
 {%-   end %}
 {%-     if IsAbstract %}
-        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+        throw new Error(""The abstract class '{% ClassName %}' cannot be instantiated."");
 {%-     else %}
-        let result = new {{ ClassName }}();
+        let result = new {% ClassName %}();
         result.init(data);
         return result;
 {%-     end %}
@@ -1119,10 +1119,10 @@ true
         }
 {%- end %}
 {%- if HasDiscriminator %}
-        data[""{{ BaseDiscriminator }}""] = this._discriminator; 
+        data[""{% BaseDiscriminator %}""] = this._discriminator; 
 {%- end %}
 {%- for property in Properties %}
-        {{ property.ConvertToJavaScriptCode | tab }}
+        {% property.ConvertToJavaScriptCode | tab %}
 {%- end %}
 {%- if HasInheritance %}
         super.toJSON(data);
@@ -1130,12 +1130,12 @@ true
         return data; 
     }
 {%- if GenerateCloneMethod %}
-    clone(): {{ ClassName }} {
+    clone(): {% ClassName %} {
 {%-   if IsAbstract %}
-        throw new Error(""The abstract class '{{ ClassName }}' cannot be instantiated."");
+        throw new Error(""The abstract class '{% ClassName %}' cannot be instantiated."");
 {%-   else %}
         const json = this.toJSON();
-        let result = new {{ ClassName }}();
+        let result = new {% ClassName %}();
         result.init(json);
         return result;
 {%-   end %}
@@ -1144,17 +1144,17 @@ true
 }
 {%- if GenerateConstructorInterface %}
 {%-   if HasDescription %}
-/** {{ Description }} */
+/** {% Description %} */
 {%-   end %}
-{% if ExportTypes %}export {% end %}interface I{{ ClassName }}{{ InterfaceInheritance }} {
+{% if ExportTypes %}export {% end %}interface I{% ClassName %}{% InterfaceInheritance %} {
 {%-   for property in Properties %}
 {%-       if property.HasDescription %}
-    /** {{ property.Description }} */
+    /** {% property.Description %} */
 {%-       end %}
-    {{ property.PropertyName }}{% if property.IsOptional %}?{% end %}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
+    {% property.PropertyName %}{% if property.IsOptional %}?{% end %}: {% property.ConstructorInterfaceType %}{% property.TypePostfix %};
 {%-   end %}
 {%-   if HasIndexerProperty %}
-    [key: string]: {{ IndexerPropertyValueType }}; 
+    [key: string]: {% IndexerPropertyValueType %}; 
 {%-   end %}
 }
 {%- end %}
@@ -1182,9 +1182,9 @@ class  {
 
 
     [Theory]
-    [InlineData("{{1}}", "1")]
-    [InlineData("{{-1-}}", "1")]
-    [InlineData("{%-len='1,2,3'|split:','|size-%}{{len}}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
+    [InlineData("{%1%}", "1")]
+    [InlineData("{%-1-%}", "1")]
+    [InlineData("{%-len='1,2,3'|split:','|size-%}{%len%}", "3")] // size-%} is ambiguous and can be read as "size -%}" or "size- %}"
     public async Task ShouldSupportCompactNotation(string source, string expected)
     {
         Assert.True(_parser.TryParse(source, out var template, out var _));
@@ -1246,7 +1246,7 @@ upcase %}";
         var _parser = new ScribanParser(options);
 #endif
 
-        _parser.TryParse("{{ a() }}", out var template, out var errors);
+        _parser.TryParse("{% a() %}", out var template, out var errors);
         var statements = ((FluidTemplate)template).Statements;
 
         Assert.Single(statements);
@@ -1272,7 +1272,7 @@ upcase %}";
         var parser = new ScribanParser(options);
 #endif
 
-        Assert.False(parser.TryParse("{{ a() }}", out var template, out var errors));
+        Assert.False(parser.TryParse("{% a() %}", out var template, out var errors));
         Assert.Contains(ErrorMessages.FunctionsNotAllowed, errors);
     }
 
@@ -1282,7 +1282,7 @@ upcase %}";
         // Ensure the parser doesn't read 'empty' when identifiers start with this keywork
         // Same for blank, true, false
 
-        var source = "{% emptyThing = 'this is not empty' %}{{ emptyThing }}{{ empty.size }}";
+        var source = "{% emptyThing = 'this is not empty' %}{% emptyThing %}{% empty.size %}";
         var context = new TemplateContext(new { empty = "eric" });
         var template = _parser.Parse(source);
         Assert.Equal("this is not empty4", template.Render(context));
