@@ -386,7 +386,7 @@ namespace Fluid
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
-                            .And(AnyTagsList)
+                            .And(ElsifAnyTagsList)
                             .And(ZeroOrOne(
                                 CreateTag("else").SkipAnd(AnyTagsList))
                                 .Then(x => x != null ? new ElseStatement(x) : null))
@@ -410,7 +410,7 @@ namespace Fluid
                                 Terms.Text("offset").SkipAnd(Colon).SkipAnd(Primary).Then(x => new ForModifier { IsOffset = true, Value = x })
                                 )))
                             .AndSkip(TagEnd)
-                            .And(AnyTagsList)
+                            .And(ElsifAnyTagsList)
                             .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                             .Then<Statement>(x =>
                             {
@@ -587,13 +587,13 @@ namespace Fluid
             //ElsifAnyTagsList.Parser = ZeroOrMany((ResettingNot(CreateTag("else").Or(CreateTag("end")).Or(TagStart.SkipAnd(Terms.Text("elsif"))))).SkipAnd(
             // Output.Or(AnyTagsReset).Or(Text)));
 
-            AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
+            AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text).Then(x=>x)); // Used in block and stop when an unknown tag is found
             KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
         }
 
-        public static Parser<string> CreateTag(string tagName) => TagStart.SkipAnd(Terms.Text(tagName)).AndSkip(TagEnd);
+        public static Parser<string> CreateTag(string tagName) => TagStart.Then(x => x).SkipAnd(SkipWhiteSpaceOrLines(new TextLiteral(tagName, StringComparison.OrdinalIgnoreCase))).Then(x=>x).AndSkip(TagEnd);
 
         public void RegisterIdentifierTag(string tagName, Func<string, TextWriter, TextEncoder, TemplateContext, ValueTask<Completion>> render)
         {

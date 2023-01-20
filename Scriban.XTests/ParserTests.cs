@@ -244,6 +244,27 @@ public class ParserTests
         Assert.NotNull(ifStatement.ElseIfs);
     }
 
+
+    [Theory]
+    [InlineData("yes", 0)]
+    [InlineData("maybe", 2)]
+    [InlineData("perhaps", 4)]
+    [InlineData("no", 3)]
+    public void ShouldRenderElsif(string expected, int value)
+    {
+        var source = @"{%a = value%}{% if a==0 %}yes{%elsif a==2%}maybe{%elsif a > 3 %}perhaps{%else%}no{%end%}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var context = new TemplateContext(new { value });
+        var render = template.Render(context);
+        Assert.Equal(expected, render);
+    }
+
     [Theory]
     [InlineData("abc { def")]
     [InlineData("abc } def")]
@@ -602,7 +623,7 @@ public class ParserTests
     }
 
     [Fact]
-    public void ShouldSkipNewLinesInTags()
+    public void ShouldSkipNewLinesInLiquidTags()
     {
         var source = @"{% liquid if true or false -%}
 true
@@ -1270,17 +1291,30 @@ upcase %}";
     [Fact]
     public void ShouldContinueForLoop()
     {
-
         var source = @"
                 {%- array = (1..6) %}
                 {%- for item in array limit: 3 %}
-                {{ item}}
+                {%- item%}
                 {%- end %}
                 {%- for item in array offset: continue limit: 2 %}
-                {{- item}}
+                {%- item%}
                 {%- end %}";
 
-        var template = _parser.Parse(source);
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result, errors);
+        Assert.Equal("12345", template.Render());
+    }
+
+    [Fact]
+    public void ShouldPrintForRangeLoop()
+    {
+        var source = @"
+                {%- for item in (1..5) %}
+                {%- item%}
+                {%- end %}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result, errors);
         Assert.Equal("12345", template.Render());
     }
 }
