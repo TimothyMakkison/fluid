@@ -35,6 +35,10 @@ namespace Fluid.Parser
 
                 var p = (FluidParseContext)context;
 
+                if(start.Offset < p.LiquidStart)
+                {
+                    p.InsideLiquidTag = false;
+                }
                 if (p.InsideLiquidTag)
                 {
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagOpen);
@@ -59,6 +63,8 @@ namespace Fluid.Parser
                     }
 
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
+                    p.LiquidStart = context.Scanner.Cursor.Offset;
+                    p.InsideLiquidTag = true;
                     return true;
                 }
                 else
@@ -84,6 +90,16 @@ namespace Fluid.Parser
 
                 var newLineIsPresent = false;
                 var semiColonIsPresent = false;
+
+                if(context.Scanner.Cursor.Offset < p.LiquidStart)
+                {
+                    p.InsideLiquidTag = false;
+                }
+
+                if (!p.InsideLiquidTag )
+                {
+                    return true;
+                }
 
                 if (_skipWhiteSpace)
                 {
@@ -138,9 +154,10 @@ namespace Fluid.Parser
                             p.PreviousIsTag = true;
                             p.PreviousIsOutput = false;
 
-                            context.Scanner.Cursor.ResetPosition(start);
+                            //context.Scanner.Cursor.ResetPosition(start);
 
                             result.Set(start.Offset, start.Offset, TagResult.TagClose);
+                            p.InsideLiquidTag = false;
                             return true;
                         }
 
@@ -157,6 +174,8 @@ namespace Fluid.Parser
                     p.PreviousTextSpanStatement = null;
                     p.PreviousIsTag = true;
                     p.PreviousIsOutput = false;
+
+                    p.InsideLiquidTag = false;
 
                     result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
                     return true;

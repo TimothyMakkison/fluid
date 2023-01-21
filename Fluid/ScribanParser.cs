@@ -425,7 +425,7 @@ namespace Fluid
                         ).ElseError("Invalid 'for' tag");
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = true; return x; })
+                
                 .SkipAnd(OneOrMany(ForgivingAssignement.Or(ForgivingOutputExpression).Or(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
@@ -442,7 +442,6 @@ namespace Fluid
                     throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
             }))))
-                .Then((context, x) => { ((FluidParseContext)context).InsideLiquidTag = false; return x; })
                 .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
                 ;
 
@@ -541,7 +540,7 @@ namespace Fluid
                 }
             }), ForgivingOutputExpression));
 
-            var KnownTags = TagStart.Then(x=>x).SkipAnd(
+            var KnownTags = TagStart.Then(x=>x).SkipAnd(OneOrMany(
                 Identifier.ResettingSwitch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
@@ -558,7 +557,7 @@ namespace Fluid
                     return null;
                     //throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected"));
+            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression)).ElseError("An expression or statement is expected"));
 
             AnyNotEndTagsList.Parser = AnyTagBut(CreateTag("end"));
 
