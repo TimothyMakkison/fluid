@@ -257,9 +257,9 @@ namespace Fluid
             var ForgivingOutputExpression = ForgivingFilterExpression.And(TagEnd)
                .Then<Statement>(static x => new OutputStatement(x.Item1));
 
-            var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
-                .Then<Statement>(static x => new OutputStatement(x.Item1))
-                );
+            //var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
+            //    .Then<Statement>(static x => new OutputStatement(x.Item1))
+            //    );
 
             var Text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static (ctx, x) =>
@@ -540,7 +540,7 @@ namespace Fluid
                 }
             }), ForgivingOutputExpression));
 
-            var KnownTags = TagStart.Then(x=>x).SkipAnd(OneOrMany(
+            var KnownTags = TagStart.Then(x=>x).SkipAnd(
                 Identifier.ResettingSwitch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
@@ -557,14 +557,14 @@ namespace Fluid
                     return null;
                     //throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
                 }
-            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression)).ElseError("An expression or statement is expected"));
+            }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected"));
 
             AnyNotEndTagsList.Parser = AnyTagBut(CreateTag("end"));
 
             ElsifAnyTagsList.Parser = AnyTagBut(OneOf(CreateTag("else"), CreateTag("end"), TagStart.SkipAnd(Terms.Text("elsif"))));
 
-            AnyTagsList.Parser = ZeroOrMany(Output.Or(AnyTags).Or(Text)); // Used in block and stop when an unknown tag is found
-            KnownTagsList.Parser = ZeroOrMany(Output.Or(KnownTags).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
+            AnyTagsList.Parser = ZeroOrMany(AnyTags.Or(Text)); // Used in block and stop when an unknown tag is found
+            KnownTagsList.Parser = ZeroOrMany(KnownTags.Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
 
@@ -572,7 +572,7 @@ namespace Fluid
             {
                 var parser = Deferred<List<Statement>>();
                 parser.Parser = ZeroOrMany(ResettingNot(predicate).SkipAnd(
-                Output.Or(AnyTagsReset).Or(Text)));
+                AnyTagsReset.Or(Text)));
 
                 return parser;
             }

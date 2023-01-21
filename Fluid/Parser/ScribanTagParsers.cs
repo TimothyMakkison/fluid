@@ -45,7 +45,7 @@ namespace Fluid.Parser
                     return true;
                 }
 
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
                 {
 
                     var trim = context.Scanner.ReadChar('-');
@@ -147,7 +147,7 @@ namespace Fluid.Parser
                     {
                         trim = context.Scanner.ReadChar('-');
 
-                        if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+                        if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                         {
                             p.StripNextTextSpanStatement = trim;
                             p.PreviousTextSpanStatement = null;
@@ -168,7 +168,7 @@ namespace Fluid.Parser
 
                 trim = context.Scanner.ReadChar('-');
 
-                if (context.Scanner.ReadChar('%') && context.Scanner.ReadChar('}'))
+                if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                 {
                     p.StripNextTextSpanStatement = trim;
                     p.PreviousTextSpanStatement = null;
