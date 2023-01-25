@@ -138,32 +138,32 @@ namespace Fluid.Parser
 
                 if (p.InsideLiquidTag)
                 {
-                    if (newLineIsPresent || semiColonIsPresent)
+                    trim = context.Scanner.ReadChar('-');
+
+                    if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                     {
-                        result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
+                        p.StripNextTextSpanStatement = trim;
+                        p.PreviousTextSpanStatement = null;
+                        p.PreviousIsTag = true;
+                        p.PreviousIsOutput = false;
+
+                        //context.Scanner.Cursor.ResetPosition(start);
+
+                        result.Set(start.Offset, start.Offset, TagResult.TagClose);
+                        p.InsideLiquidTag = false;
                         return true;
                     }
                     else
                     {
-                        trim = context.Scanner.ReadChar('-');
-
-                        if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
+                        if (newLineIsPresent || semiColonIsPresent)
                         {
-                            p.StripNextTextSpanStatement = trim;
-                            p.PreviousTextSpanStatement = null;
-                            p.PreviousIsTag = true;
-                            p.PreviousIsOutput = false;
-
-                            //context.Scanner.Cursor.ResetPosition(start);
-
-                            result.Set(start.Offset, start.Offset, TagResult.TagClose);
-                            p.InsideLiquidTag = false;
+                            result.Set(start.Offset, context.Scanner.Cursor.Offset, TagResult.TagClose);
                             return true;
                         }
-
-                        context.Scanner.Cursor.ResetPosition(start);
-                        return false;
                     }
+
+                    context.Scanner.Cursor.ResetPosition(start);
+                    return false;
                 }
 
                 trim = context.Scanner.ReadChar('-');

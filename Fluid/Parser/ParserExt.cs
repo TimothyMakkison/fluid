@@ -125,10 +125,14 @@ namespace Fluid.Parser
         {
             context.EnterParser(this);
 
+            var p = (FluidParseContext)context;
+            var inside = p.InsideLiquidTag;
+
             var start = context.Scanner.Cursor.Position;
 
             var matches = _parser.Parse(context, ref result);
             context.Scanner.Cursor.ResetPosition(start);
+            p.InsideLiquidTag = inside;
             return !matches;
         }
     }

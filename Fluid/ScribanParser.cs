@@ -71,7 +71,7 @@ namespace Fluid
 
         protected static readonly Parser<TagResult> OutputStart = ScribanTagParsers.OutputTagStart(); // {{
         protected static readonly Parser<TagResult> OutputEnd = ScribanTagParsers.OutputTagEnd(true);
-        protected static readonly Parser<TagResult> TagStart = ScribanTagParsers.TagStart(); // {%
+        protected static readonly Parser<TagResult> TagStart = ScribanTagParsers.TagStart(); // {{
         protected static readonly Parser<TagResult> TagStartSpaced = ScribanTagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = ScribanTagParsers.TagEnd(true);
 
@@ -257,10 +257,6 @@ namespace Fluid
             var ForgivingOutputExpression = ForgivingFilterExpression.And(TagEnd)
                .Then<Statement>(static x => new OutputStatement(x.Item1));
 
-            //var Output = OutputStart.SkipAnd(FilterExpression.And(SkipWhiteSpaceOrLines(OutputEnd.ElseError(ErrorMessages.ExpectedOutputEnd)))
-            //    .Then<Statement>(static x => new OutputStatement(x.Item1))
-            //    );
-
             var Text = AnyCharBefore(OutputStart.Or(TagStart))
                 .Then<Statement>(static (ctx, x) =>
                 {
@@ -361,7 +357,8 @@ namespace Fluid
                         .Then(x=>x).And(ZeroOrOne(
                             CreateTag("else").SkipAnd(AnyNotEndTagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null)).Then(x=>x)
-                        .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
+                        .Then(x=>x)
+                            .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
            
@@ -425,7 +422,6 @@ namespace Fluid
                         ).ElseError("Invalid 'for' tag");
 
             var LiquidTag = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
-                
                 .SkipAnd(OneOrMany(ForgivingAssignement.Or(ForgivingOutputExpression).Or(Identifier.Switch((context, previous) =>
             {
                 // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
@@ -539,6 +535,26 @@ namespace Fluid
                     return null;
                 }
             }), ForgivingOutputExpression));
+
+            var Liquid = Literals.WhiteSpace(true) // {% liquid %} can start with new lines
+               .SkipAnd(OneOrMany(ForgivingAssignement.Or(ForgivingOutputExpression).Or(Identifier.Switch((context, previous) =>
+               {
+                   // Because tags like 'else' are not listed, they won't count in TagsList, and will stop being processed
+                   // as inner tags in blocks like {% if %} TagsList {% end $}
+
+                   var tagName = previous;
+
+                   if (RegisteredTags.TryGetValue(tagName, out var tag))
+                   {
+                       return tag;
+                   }
+                   else
+                   {
+                       throw new ParseException($"Unknown tag '{tagName}' at {context.Scanner.Cursor.Position}");
+                   }
+               }))))
+               .AndSkip(TagEnd).Then<Statement>(x => new LiquidStatement(x))
+               ;
 
             var KnownTags = TagStart.Then(x=>x).SkipAnd(
                 Identifier.ResettingSwitch((context, previous) =>

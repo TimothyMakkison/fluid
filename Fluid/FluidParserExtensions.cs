@@ -1,6 +1,5 @@
 ﻿using Fluid.Ast;
 using Fluid.Parser;
-using Parlot.Fluent;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -39,7 +38,7 @@ namespace Fluid
 
         public static IFluidTemplate ParseScriban(this ScribanParser parser, string template)
         {
-            var context = new FluidParseContext(template, true);
+            var context = new FluidParseContext(template, false);
 
             var success = parser.Grammar.TryParse(context, out var statements, out var parlotError);
 

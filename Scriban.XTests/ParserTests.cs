@@ -205,7 +205,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseIfElseTagWithAssignment()
     {
-        var source = @"{{ if true }}{{ a= ""yes"" }}{{else}}{{ a= ""no"" }}{{ end }}{{ a }}";
+        var source = @"{{ if true }}{{ a = ""yes"" }}{{else}}{{ a= ""no"" }}{{ end }}{{ a }}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -270,7 +270,6 @@ public class ParserTests
     [InlineData("abc } def")]
     [InlineData("abc }} def")]
     [InlineData("abc { def }}")]
-    [InlineData("abc }} def")]
     [InlineData("abc }}")]
     [InlineData("}} def")]
     [InlineData("abc }}} def")]
@@ -368,9 +367,9 @@ public class ParserTests
 
     [Theory]
     [InlineData("{{ if true }} {{ end }}")]
-    //[InlineData("{{ for a in b }} {{ end }}")]
-    //[InlineData("{{ case a }} {{ when 'cake' }} blah {{ end }}")]
-    //[InlineData("{{ capture myVar }} capture me! {{ end }}")]
+    [InlineData("{{ for a in b }} {{ end }}")]
+    [InlineData("{{ case a }} {{ when 'cake' }} blah {{ end }}")]
+    [InlineData("{{ capture myVar }} capture me! {{ end }}")]
     public void ShouldSucceedClosedBlock(string source)
     {
         var result = _parser.TryParse(source, out var template, out var error);
@@ -404,11 +403,10 @@ public class ParserTests
     }
 
     [Theory]
-//    [InlineData(@"{{ 20 | 
-//divided_by: 7.0 |
-//round: 2 }}", "2.86")]
-//    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
-//    [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
+    [InlineData(@"{{ 20 | 
+divided_by: 7.0 |
+round: 2 }}", "2.86")]
+    [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7 | round: 2 }}", "2")]
     public void ShouldParseIntegralNumbers(string source, string expected)
     {
@@ -424,10 +422,10 @@ public class ParserTests
     }
 
     [Theory]
-    //[InlineData("{{if true}}{{ bab = 20 }}{{end}}{{ bab | divided_by: 5 | divided_by: 2 }}", "2")]
-    //[InlineData("{{ value | divided_by: 5 | divided_by: 2 }}", "2")]
+    [InlineData("{{if true}}{{ bab = 20 }}{{end}}{{ bab | divided_by: 5 | divided_by: 2 }}", "2")]
+    [InlineData("{{ value | divided_by: 5 | divided_by: 2 }}", "2")]
     [InlineData("{{ value }}", "20")]
-    //[InlineData("{{liquid if true; bab = 20; end; bab | divided_by: 5 | divided_by: 2 }}", "2")]
+    [InlineData("{{ if true; bab = 20; end; bab | divided_by: 5 | divided_by: 2 }}", "2")]
     public void ShouldOutputValue(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -561,7 +559,6 @@ public class ParserTests
     [InlineData("{{ my_integer = 7 }}{{ 20 | divided_by: my_integer }}", "2")]
     [InlineData("{{ my_integer = 7 }}{{ my_float = my_integer | times: 1.0 }}{{ 20 | divided_by: my_float | round: 5 }}", "2.85714")]
     [InlineData("{{ 183.357 | times: 12 }}", "2200.284")]
-    [InlineData("{{ my_integer = 7 }}{{ 20 | divided_by: my_integer }}", "2")]
     public void ShouldChangeVariableType(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -576,7 +573,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"{{ liquid my_string = 'abcd' }}{{ my_string.size }}", "4")]
+    [InlineData(@"{{ my_string = 'abcd' }}{{ my_string.size }}", "4")]
     public void SizeAppliedToStrings(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -592,7 +589,7 @@ public class ParserTests
 
 
     [Theory]
-    [InlineData("{{ '{{ {{ }} }}' }}{{ liquid x = '{{ {{ }} }}' }}{{ x }}", "{{ {{ }} }}{{ {{ }} }}")]
+    [InlineData("{{ '{{ {{ }} }}' }}{{ x = '{{ {{ }} }}' }}{{ x }}", "{{ {{ }} }}{{ {{ }} }}")]
     public void StringsCanContainCurlies(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -625,7 +622,7 @@ public class ParserTests
     [Fact]
     public void ShouldSkipNewLinesInLiquidTags()
     {
-        var source = @"{{ liquid if true or false -}}
+        var source = @"{{ if true or false -}}
 true
 {{- end }}";
 
@@ -644,7 +641,7 @@ true
     public void ShouldSkipNewLinesInTags3()
     {
         var source = @"{{ 
-liquid if true or false
+if true or false
 if false
 echo false
 else
@@ -694,27 +691,7 @@ end
     public void ShouldSkipNewLinesInTags2()
     {
         var source = @"{{ 
-liquid if true or false
-true
-end
-}}";
-
-        var result = _parser.TryParse(source, out var template, out var errors);
-
-        Assert.True(result, errors);
-        Assert.NotNull(template);
-        Assert.Null(errors);
-
-        var rendered = template.Render();
-
-        Assert.Equal("true", rendered);
-    }
-
-    [Fact]
-    public void ShouldSkipNewLinesInTags9()
-    {
-        var source = @"{{ 
-liquid if true or false
+if true or false
 true
 end
 }}";
@@ -734,7 +711,7 @@ end
     public void ShouldSkipNewLinesInTags5()
     {
         var source = @"{{ 
-liquid if true or false
+if true or false
 ""true""
 end
 }}";
@@ -754,7 +731,7 @@ end
     public void ShouldSkipNewLinesInTags7()
     {
         var source = @"{{ 
-liquid ""Hey""
+""Hey""
 }}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
@@ -913,6 +890,17 @@ true
         var template = _parser.Parse(source);
         Assert.Equal("true", template.Render(context));
     }
+
+   // [Fact]
+   // public void TestLines()
+   // {
+   //     var source = @"{{ a_multi_line_value = ""test1\ntest2\ntest3\n"" }}
+   //{{ a_multi_line_value }}Hello";
+   //     var model = new { a = "world", b = "cold", c = true, d = "dr" };
+   //     var context = new TemplateContext(model);
+   //     var template = _parser.Parse(source);
+   //     Assert.Equal("true", template.Render(context));
+   // }
 
     [Fact]
     public void CycleShouldHandleNumbers()
@@ -1204,10 +1192,49 @@ class  {
     }
 
     [Fact]
+    public void ShouldPrintInlineValue()
+    {
+        var source = @"{{ a = ""10"";if true; b = 123; end; a;a;b}}";
+
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("1010123", rendered);
+    }
+
+    [Fact]
+    public void ShouldPrintLiquidNewBlockValues()
+    {
+        var source = @"{{ a = ""10"";if true}} {{b = 123; end; a;a;b}}";
+
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("1010123", rendered);
+    }
+
+    [Fact]
+    public void ShouldPrintNewLineValue()
+    {
+        var source = @"{{ a = ""10""
+if true
+b = 123
+end
+a;
+
+a;b-}}
+hello everyone
+
+Hey";
+
+        Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
+        var rendered = template.Render();
+        Assert.Contains("1010123", rendered);
+    }
+
+    [Fact]
     public void ShouldParseLiquidTag()
     {
         var source = @"
-{{ liquid 
+{{ 
    'welcome ' | upcase 
    'to the liquid tag' | 
 upcase }}";
@@ -1221,8 +1248,7 @@ upcase }}";
     public void ShouldParseLiquidTagWithBlocks()
     {
         var source = @"
-{{ liquid 
-      cool = true
+{{ cool = true
    if cool
      'welcome to the liquid tag' | upcase
    end 
