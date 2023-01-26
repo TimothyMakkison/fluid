@@ -9,9 +9,6 @@ namespace Fluid.Parser
     {
         public static Parser<TagResult> TagStart(bool skipWhiteSpace = false) => new TagStartParser(skipWhiteSpace);
         public static Parser<TagResult> TagEnd(bool skipWhiteSpace = false) => new TagEndParser(skipWhiteSpace);
-        public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
-        public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
-
         public static Parser<int> EscapeBlockStart() => new EscapeBlockStartParser();
         public static Parser<int> EscapeBlockEnd(int length) => new EscapeBlockEndParser(length);
 
@@ -200,6 +197,8 @@ namespace Fluid.Parser
                 // Use the scanner's logic to ignore whitespaces since it knows about multi-line grammars
                 context.Scanner.SkipWhiteSpace();
 
+                var firstNonWhiteSpace = context.Scanner.Cursor.Position;
+
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
                 {
                     while (context.Scanner.ReadChar('%'))
@@ -208,7 +207,8 @@ namespace Fluid.Parser
                     }
                     if (context.Scanner.ReadChar('{'))
                     {
-                        result.Value = context.Scanner.Cursor.Position - start - 2;
+                        var length = context.Scanner.Cursor.Position - firstNonWhiteSpace - 2;
+                        result.Set(firstNonWhiteSpace.Offset, context.Scanner.Cursor.Offset, length);
                         return true;
                     }
                 }
@@ -216,7 +216,7 @@ namespace Fluid.Parser
                 context.Scanner.Cursor.ResetPosition(start);
 
                 return false;
-                }
+            }
         }
 
         private sealed class EscapeBlockEndParser : Parser<int>
@@ -253,94 +253,6 @@ namespace Fluid.Parser
                 context.Scanner.Cursor.ResetPosition(start);
 
                 return false;
-            }
-        }
-
-        private sealed class OutputTagStartParser : Parser<TagResult>
-        {
-            private readonly bool _skipWhiteSpace;
-
-            public OutputTagStartParser(bool skipWhiteSpace = false)
-            {
-                _skipWhiteSpace = skipWhiteSpace;
-            }
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                if (_skipWhiteSpace)
-                {
-                    context.SkipWhiteSpace();
-                }
-
-                var start = context.Scanner.Cursor.Position;
-
-                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
-                {
-                    var trim = context.Scanner.ReadChar('-');
-
-                    var p = (FluidParseContext)context;
-
-                    if (p.PreviousTextSpanStatement != null)
-                    {
-                        if (trim)
-                        {
-                            p.PreviousTextSpanStatement.StripRight = true;
-                        }
-
-                        p.PreviousTextSpanStatement.NextIsOutput = true;
-
-                        p.PreviousTextSpanStatement = null;
-                    }
-
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagOpenTrim : TagResult.TagOpen);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-                    return false;
-                }
-            }
-        }
-
-        private sealed class OutputTagEndParser : Parser<TagResult>
-        {
-            private readonly bool _skipWhiteSpace;
-
-            public OutputTagEndParser(bool skipWhiteSpace = false)
-            {
-                _skipWhiteSpace = skipWhiteSpace;
-            }
-
-            public override bool Parse(ParseContext context, ref ParseResult<TagResult> result)
-            {
-                if (_skipWhiteSpace)
-                {
-                    context.SkipWhiteSpace();
-                }
-
-                var start = context.Scanner.Cursor.Position;
-
-                bool trim = context.Scanner.ReadChar('-');
-
-                if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
-                {
-                    var p = (FluidParseContext)context;
-
-                    p.StripNextTextSpanStatement = trim;
-                    p.PreviousTextSpanStatement = null;
-                    p.PreviousIsTag = false;
-                    p.PreviousIsOutput = true;
-
-                    result.Set(start.Offset, context.Scanner.Cursor.Offset, trim ? TagResult.TagCloseTrim : TagResult.TagClose);
-                    return true;
-                }
-                else
-                {
-                    context.Scanner.Cursor.ResetPosition(start);
-                    return false;
-                }
             }
         }
     }

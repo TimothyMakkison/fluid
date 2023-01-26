@@ -70,8 +70,6 @@ namespace Fluid
         protected readonly Deferred<List<Statement>> ElsifAnyTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyNotEndTagsList = Deferred<List<Statement>>();
 
-        protected static readonly Parser<TagResult> OutputStart = ScribanTagParsers.OutputTagStart(); // {{
-        protected static readonly Parser<TagResult> OutputEnd = ScribanTagParsers.OutputTagEnd(true);
         protected static readonly Parser<TagResult> TagStart = ScribanTagParsers.TagStart(); // {{
         protected static readonly Parser<TagResult> TagStartSpaced = ScribanTagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = ScribanTagParsers.TagEnd(true);
@@ -258,7 +256,7 @@ namespace Fluid
             var ForgivingOutputExpression = ForgivingFilterExpression.And(TagEnd)
                .Then<Statement>(static x => new OutputStatement(x.Item1));
 
-            var Text = AnyCharBefore(OutputStart.Or(TagStart))
+            var Text = AnyCharBefore(TagStart)
                 .Then<Statement>(static (ctx, x) =>
                 {
                     // Keep track of each text span such that whitespace trimming can be applied
