@@ -142,26 +142,6 @@ public class ParserTests
     }
 
     [Fact]
-    public void ShouldParseRaw()
-    {
-        var statements = Parse(@"{{ raw }} on {{ this }} and {{{ that }}} {{ endraw }}");
-
-        Assert.Single(statements);
-        Assert.IsType<RawStatement>(statements.ElementAt(0));
-        Assert.Equal(" on {{ this }} and {{{ that }}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
-    }
-
-    [Fact]
-    public void ShouldParseRawWithBlocks()
-    {
-        var statements = Parse(@"{{ raw }} {{if true}} {{end}} {{ endraw }}");
-
-        Assert.Single(statements);
-        Assert.IsType<RawStatement>(statements.ElementAt(0));
-        Assert.Equal(" {{if true}} {{end}} ", (statements.ElementAt(0) as RawStatement).Text.ToString());
-    }
-
-    [Fact]
     public void ShouldParseComment()
     {
         var statements = Parse(@"{{ comment }} on {{ this }} and {{{ that }}} {{ endcomment }}");
@@ -220,7 +200,7 @@ public class ParserTests
     [Fact]
     public void ShouldParseAssignEmit()
     {
-        var source = @"{{ a= ""yes"" }}{{ a }}";
+        var source = @"{{ a = ""yes"" }}{{ a }}";
 
         var result = _parser.TryParse(source, out var template, out var errors);
 
@@ -230,6 +210,28 @@ public class ParserTests
 
         var render = template.Render();
         Assert.Equal("yes", render);
+    }
+
+    [Theory]
+    [InlineData(@"{{ a= [10]; a[0] }}", "10")]
+    [InlineData(@"{{ a= [10, 2,3]; a[0];a[1];a[2] }}", "1023")]
+    [InlineData(@"{{ a= [10, 
+2,
+3]; a[0];a[1];a[2] }}", "1023")]
+    [InlineData(@"{{ a= [""Hello"", "" World""]; a[0];a[1]}}", "Hello World")]
+
+    // TODO Add FilterValue
+    //[InlineData(@"{{ a= [""Hey"", 'welcome ' | upcase]; a[1]}}", "WELCOME")]
+    public void ShouldAssignArray(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var render = template.Render();
+        Assert.Equal(expected, render);
     }
 
     [Fact]
@@ -501,7 +503,6 @@ round: 2 }}", "2.86")]
     [InlineData("{{ case }}")]
     [InlineData("{{ if }}")]
     [InlineData("{{ comment }}")]
-    [InlineData("{{ raw }}")]
     [InlineData("{{ capture }}")]
 
     public void ShouldThrowParseExceptionMissingTag(string template)
@@ -590,6 +591,8 @@ round: 2 }}", "2.86")]
     [Theory]
     [InlineData(@"{%{ {{ hey }} }%}", " {{ hey }} ")]
     [InlineData(@"{%{ {{ true == true }} }%}", " {{ true == true }} ")]
+    [InlineData(@"{%{ on {{ this }} and {{{ that }}} }%}", " on {{ this }} and {{{ that }}} ")]
+    [InlineData(@"{%{ {{if true}} {{end}} }%}", " {{if true}} {{end}} ")]
     public void EscapeBlockShouldEscapeContents(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);

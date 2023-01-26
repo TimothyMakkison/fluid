@@ -26,6 +26,9 @@ namespace Fluid
         protected static readonly Parser<char> RBrace = Terms.Char('}');
         protected static readonly Parser<char> LParen = Terms.Char('(');
         protected static readonly Parser<char> RParen = Terms.Char(')');
+
+        protected static readonly Parser<char> LBracketSkip = Terms.Char('[');
+
         protected static readonly Parser<char> LBracket = Literals.Char('[');
         protected static readonly Parser<char> RBracket = Terms.Char(']');
         protected static readonly Parser<char> Equal = Terms.Char('=');
@@ -55,8 +58,6 @@ namespace Fluid
 
         protected static readonly Parser<string> Identifier = SkipWhiteSpaceOrLines(new IdentifierParser()).Then(x => x.ToString());
         
-        protected static readonly Parser<string> FuncIdentifier = new SkipOnlyWhiteSpace<TextSpan>(new IdentifierParser()).Then(x => x.ToString());
-
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<List<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
@@ -66,6 +67,7 @@ namespace Fluid
         protected readonly Deferred<Expression> ForgivingFilterExpression = Deferred<Expression>();
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
+        protected readonly Deferred<Expression> Array = Deferred<Expression>();
 
         protected readonly Deferred<List<Statement>> ElsifAnyTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyNotEndTagsList = Deferred<List<Statement>>();
@@ -73,6 +75,7 @@ namespace Fluid
         protected static readonly Parser<TagResult> TagStart = ScribanTagParsers.TagStart(); // {{
         protected static readonly Parser<TagResult> TagStartSpaced = ScribanTagParsers.TagStart(true);
         protected static readonly Parser<TagResult> TagEnd = ScribanTagParsers.TagEnd(true);
+        protected static readonly Parser<int> EscapeBlockStart = ScribanTagParsers.EscapeBlockStart();
 
         protected static readonly LiteralExpression EmptyKeyword = new LiteralExpression(EmptyValue.Instance);
         protected static readonly LiteralExpression BlankKeyword = new LiteralExpression(BlankValue.Instance);
@@ -125,8 +128,11 @@ namespace Fluid
                 .AndSkip(RParen)
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
 
-            // primary => NUMBER | STRING | property
-            Primary.Parser =
+            Array.Parser = LBracketSkip.Then(x=>x).SkipAnd(Separated(Comma, FilterExpression.Then(x=>x))).AndSkip(RBracket).Then<Expression>((_,x) => new LiteralExpression(new ArrayValue(x.Cast<LiteralExpression>().Select(c=>c.Value)))
+                );
+
+            // primary => NUMBER | STRING | property | ARRAY
+            Primary.Parser = 
                 String.Then<Expression>(x => new LiteralExpression(StringValue.Create(x)))
                 .Or(Member.Then<Expression>(static x =>
                 {
@@ -145,6 +151,9 @@ namespace Fluid
                 }))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 .Or(Range)
+                .Or(
+                    Debug("Call Array from primary",
+                    Array))
                 ;
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
@@ -342,10 +351,9 @@ namespace Fluid
                         .ElseError("Invalid 'render' tag")
                         ;
 
-            var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
 
-            var ForgivingAssignement = Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var ForgivingAssignement = Identifier.AndSkip(Equal).Then(x=>x).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
@@ -451,12 +459,10 @@ namespace Fluid
             RegisteredTags["include"] = IncludeTag;
             RegisteredTags["render"] = RenderTag;
             RegisteredTags["increment"] = IncrementTag;
-            RegisteredTags["raw"] = RawTag;
             RegisteredTags["assign"] = AssignTag;
             RegisteredTags["if"] = IfTag;
             RegisteredTags["case"] = CaseTag;
             RegisteredTags["for"] = ForTag;
-            RegisteredTags["liquid"] = LiquidTag;
             RegisteredTags["echo"] = EchoTag;
 
             if (parserOptions.AllowFunctions)
@@ -578,8 +584,6 @@ namespace Fluid
             {
                 return AnyCharBefore(ScribanTagParsers.EscapeBlockEnd(x)).AndSkip(ScribanTagParsers.EscapeBlockEnd(x));
             }).Then<Statement>((y) => new RawStatement(y));
-
-            //var EscapeBlock = ScribanTagParsers.EscapeBlockStart().SkipAnd(AnyCharBefore(ScribanTagParsers.EscapeBlockEnd(1))).AndSkip(ScribanTagParsers.EscapeBlockEnd(1)).Then<Statement>((y) => new RawStatement(y));
 
             AnyNotEndTagsList.Parser = AnyTagBut(CreateTag("end"));
 

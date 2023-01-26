@@ -12,6 +12,12 @@ namespace Fluid.Parser
         public static ResettingNot<T> ResettingNot<T>(Parser<T> parser) => new ResettingNot<T>(parser);
 
         public static SkipOnlyWhiteSpace<T> SkipOnlyWhiteSpace<T>(Parser<T> parser) => new SkipOnlyWhiteSpace<T>(parser);
+
+        public static DebugParser<T> Debug<T>(Parser<T> parser, string id = "") => new DebugParser<T>(parser, id);
+
+        public static DebugParser<T> Debug<T>(string id, Parser<T> parser) => new DebugParser<T>(parser, id);
+
+
     }
 
     public sealed class SkipWhiteSpaceOrLines<T> : Parser<T>
@@ -40,6 +46,26 @@ namespace Fluid.Parser
             context.Scanner.Cursor.ResetPosition(start);
 
             return false;
+        }
+    }
+
+    public sealed class DebugParser<T> : Parser<T>
+    {
+        private readonly Parser<T> _parser;
+        private readonly string _id;
+
+        public DebugParser(Parser<T> parser, string id = "")
+        {
+            _parser = parser;
+            _id = id;
+        }
+
+        public override bool Parse(ParseContext context, ref ParseResult<T> result)
+        {
+            var succ = false;
+            succ = _parser.Parse(context, ref result);
+
+            return succ;
         }
     }
 
