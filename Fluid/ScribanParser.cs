@@ -32,6 +32,7 @@ namespace Fluid
         protected static readonly Parser<char> Colon = Terms.Char(':');
         protected static readonly Parser<char> Comma = Terms.Char(',');
         protected static readonly Parser<char> Dot = Literals.Char('.');
+        protected static readonly Parser<char> Percent = Literals.Char('%');
         protected static readonly Parser<char> Pipe = Terms.Char('|');
         protected static readonly Parser<char> SemiColon = Terms.Char(';');
 
@@ -346,7 +347,7 @@ namespace Fluid
             var RawTag = TagEnd.SkipAnd(AnyCharBefore(CreateTag("endraw"), consumeDelimiter: true, failOnEof: true).Then<Statement>(x => new RawStatement(x))).ElseError("Not end tag found for {% raw %}");
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
 
-            var ForgivingAssignement = Identifier.Then(x => x).AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            var ForgivingAssignement = Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
@@ -575,12 +576,19 @@ namespace Fluid
                 }
             }).Or(ForgivingAssignement).Or(ForgivingOutputExpression).ElseError("An expression or statement is expected"));
 
+            var EscapeBlock = ScribanTagParsers.EscapeBlockStart().Switch(static (_, x) =>
+            {
+                return AnyCharBefore(ScribanTagParsers.EscapeBlockEnd(x)).AndSkip(ScribanTagParsers.EscapeBlockEnd(x));
+            }).Then<Statement>((y) => new RawStatement(y));
+
+            //var EscapeBlock = ScribanTagParsers.EscapeBlockStart().SkipAnd(AnyCharBefore(ScribanTagParsers.EscapeBlockEnd(1))).AndSkip(ScribanTagParsers.EscapeBlockEnd(1)).Then<Statement>((y) => new RawStatement(y));
+
             AnyNotEndTagsList.Parser = AnyTagBut(CreateTag("end"));
 
             ElsifAnyTagsList.Parser = AnyTagBut(OneOf(CreateTag("else"), CreateTag("end"), TagStart.SkipAnd(Terms.Text("elsif"))));
 
-            AnyTagsList.Parser = ZeroOrMany(AnyTags.Or(Text)); // Used in block and stop when an unknown tag is found
-            KnownTagsList.Parser = ZeroOrMany(KnownTags.Or(Text)); // Used in main list and raises an issue when an unknown tag is found
+            AnyTagsList.Parser = ZeroOrMany(AnyTags.Or(EscapeBlock).Or(Text)); // Used in block and stop when an unknown tag is found
+            KnownTagsList.Parser = ZeroOrMany(KnownTags.Or(EscapeBlock).Or(Text)); // Used in main list and raises an issue when an unknown tag is found
 
             Grammar = KnownTagsList;
 

@@ -587,6 +587,76 @@ round: 2 }}", "2.86")]
         Assert.Equal(expected, rendered);
     }
 
+    [Theory]
+    [InlineData(@"{%{ {{ hey }} }%}", " {{ hey }} ")]
+    [InlineData(@"{%{ {{ true == true }} }%}", " {{ true == true }} ")]
+    public void EscapeBlockShouldEscapeContents(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Contains(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData(@"{%{ Hello }%}", " Hello ")]
+    [InlineData(@"{%%{ Hello }%%}", " Hello ")]
+    [InlineData(@"{%%%%%{ Hello }%%%%%}", " Hello ")]
+    public void VariableLengthEscapeBlocks(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Contains(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData(@"{%{Hello}%}", "Hello")]
+    [InlineData(@"{%%{ Hello}%%}", " Hello")]
+    [InlineData(@"{%%{ Hello  }%%}", " Hello  ")]
+    [InlineData(@"{%{ Hello }%}", " Hello ")]
+    [InlineData(@"{%%{ Hello }%%}", " Hello ")]
+    public void EscapeBlocksShouldIncludeSpaces(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData(@"{%{ {%{ }%}", " {%{ ")]
+    [InlineData(@"{%{ {%%{ }%}", " {%%{ ")]
+    [InlineData(@"{%%{ {%%{ }%%}", " {%%{ ")]
+    [InlineData(@"{%%{ }%} }%%}", " }%} ")]
+    [InlineData(@"{%%{ }%%%} }%%}", " }%%%} ")]
+    public void EscapeBlocksShouldEndOnMatchingBlock(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var rendered = template.Render();
+
+        Assert.Equal(expected, rendered);
+    }
 
     [Theory]
     [InlineData("{{ '{{ {{ }} }}' }}{{ x = '{{ {{ }} }}' }}{{ x }}", "{{ {{ }} }}{{ {{ }} }}")]

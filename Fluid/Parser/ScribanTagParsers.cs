@@ -12,6 +12,9 @@ namespace Fluid.Parser
         public static Parser<TagResult> OutputTagStart(bool skipWhiteSpace = false) => new OutputTagStartParser(skipWhiteSpace);
         public static Parser<TagResult> OutputTagEnd(bool skipWhiteSpace = false) => new OutputTagEndParser(skipWhiteSpace);
 
+        public static Parser<int> EscapeBlockStart() => new EscapeBlockStartParser();
+        public static Parser<int> EscapeBlockEnd(int length) => new EscapeBlockEndParser(length);
+
         public static ResettingSwitch<T, U> ResettingSwitch<T, U>(this Parser<T> previousParser, Func<ParseContext, T, Parser<U>> action) => new ResettingSwitch<T,U>(previousParser, action);
 
 
@@ -185,6 +188,71 @@ namespace Fluid.Parser
                     context.Scanner.Cursor.ResetPosition(start);
                     return false;
                 }
+            }
+        }
+
+        private sealed class EscapeBlockStartParser : Parser<int>
+        {
+            public override bool Parse(ParseContext context, ref ParseResult<int> result)
+            {
+                var start = context.Scanner.Cursor.Position;
+
+                // Use the scanner's logic to ignore whitespaces since it knows about multi-line grammars
+                context.Scanner.SkipWhiteSpace();
+
+                if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('%'))
+                {
+                    while (context.Scanner.ReadChar('%'))
+                    {
+
+                    }
+                    if (context.Scanner.ReadChar('{'))
+                    {
+                        result.Value = context.Scanner.Cursor.Position - start - 2;
+                        return true;
+                    }
+                }
+
+                context.Scanner.Cursor.ResetPosition(start);
+
+                return false;
+                }
+        }
+
+        private sealed class EscapeBlockEndParser : Parser<int>
+        {
+            private readonly int _expectedLength;
+
+            public EscapeBlockEndParser(int expectedLength)
+            {
+                _expectedLength = expectedLength;
+            }
+
+            public override bool Parse(ParseContext context, ref ParseResult<int> result)
+            {
+                var start = context.Scanner.Cursor.Position;
+
+                if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('%'))
+                {
+                    for (int i = 0; i < _expectedLength - 1; i++)
+                    {
+                        if (!context.Scanner.ReadChar('%'))
+                        {
+                            context.Scanner.Cursor.ResetPosition(start);
+                            return false;
+                        }
+                    }
+
+                    if (context.Scanner.ReadChar('}'))
+                    {
+                        result.Value = context.Scanner.Cursor.Position - start - 2;
+                        return true;
+                    }
+                }
+
+                context.Scanner.Cursor.ResetPosition(start);
+
+                return false;
             }
         }
 
