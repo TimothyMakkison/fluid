@@ -1417,6 +1417,24 @@ upcase }}";
         Assert.Equal("this is not empty4", template.Render(context));
     }
 
+    //[Fact]
+    //public void TestAssign2()
+    //{
+    //    var source = "{{ a.B = 100 }}";
+    //    var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+    //    var template = _parser.Parse(source);
+    //    Assert.Equal("100", template.Render(context));
+    //}
+
+    //[Fact]
+    //public void TestAssign3()
+    //{
+    //    var source = "{{ a ={} }}";
+    //    var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+    //    var template = _parser.Parse(source);
+    //    Assert.Equal("100", template.Render(context));
+    //}
+
     [Fact]
     public void ShouldContinueForLoop()
     {
@@ -1456,12 +1474,30 @@ upcase }}";
     [InlineData("{{ a = value / 4 }}{{a}}","2.5")]
     [InlineData("{{ a = value % 4 }}{{a}}", "2")]
     [InlineData("{{ a = 10.5 // 2.5 }}{{a}}", "4")]
-    public void ShouldParseAndPrintCompoundAssignment(string source, string expected)
+    public void ShouldParseAndPrintArithmeticExpressions(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);
         Assert.True(result, errors);
 
         var context = new TemplateContext(new { value = 10});
+        var render = template.Render(context);
+        Assert.Equal(expected, render);
+    }
+
+    [Theory]
+    [InlineData("{{ value += 4}}{{value}}", "14")]
+    [InlineData("{{ value -= 4}}{{value}}", "6")]
+    [InlineData("{{ value *= 4}}{{value}}", "40")]
+    [InlineData("{{ value /= 4}}{{value}}", "2.5")]
+    [InlineData("{{ value %= 4}}{{value}}", "2")]
+    [InlineData("{{ value //= 4.5}}{{value}}", "2")]
+    [InlineData("{{ a += 4}}{{a}}", "")]
+    public void ShouldParseAndPrintCompoundAssignment(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result, errors);
+
+        var context = new TemplateContext(new { value = 10 });
         var render = template.Render(context);
         Assert.Equal(expected, render);
     }

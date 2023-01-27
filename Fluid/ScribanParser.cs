@@ -21,6 +21,7 @@ namespace Fluid
         public Parser<List<Statement>> Grammar { get; private set; }
         public Dictionary<string, Parser<Statement>> RegisteredTags { get; } = new();
         public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredOperators { get; } = new();
+        public Dictionary<string, Func<Expression, Expression, Expression>> RegisteredCompAssignOperators { get; } = new();
 
         protected static readonly Parser<char> LBrace = Terms.Char('{');
         protected static readonly Parser<char> RBrace = Terms.Char('}');
@@ -360,7 +361,23 @@ namespace Fluid
 
             var AssignTag = Identifier.Then(x => x).ElseError(ErrorMessages.IdentifierAfterAssign).AndSkip(Equal.ElseError(ErrorMessages.EqualAfterAssignIdentifier)).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
 
-            var ForgivingAssignement = Identifier.AndSkip(Equal).Then(x=>x).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2));
+            RegisteredCompAssignOperators["+="] = (a, b) => new AddBinaryExpression(a, b);
+            RegisteredCompAssignOperators["-="] = (a, b) => new SubstractBinaryExpression(a, b);
+            RegisteredCompAssignOperators["*="] = (a, b) => new MultiplyBinaryExpression(a, b);
+            RegisteredCompAssignOperators["/="] = (a, b) => new DivideBinaryExpression(a, b);
+            RegisteredCompAssignOperators["%="] = (a, b) => new ModuloBinaryExpression(a, b);
+            RegisteredCompAssignOperators["//="] = (a, b) => new FloorDivideBinaryExpression(a, b);
+
+            // TODO Accept members as assignment targets.
+            var ForgivingAssignement = OneOf(Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2)),
+                Identifier.Then(x=>x).And(SkipWhiteSpace(Terms.NonWhiteSpace()).Then(x => x.ToString()).When(x=> RegisteredCompAssignOperators.ContainsKey(x)))
+                .And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x =>
+            {
+                var (identifier, op, rightValue) = x;
+                var member = Member.Parse(identifier);
+                var comb = RegisteredCompAssignOperators[op](member, rightValue);
+                return new AssignStatement(identifier, comb);
+            }));
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)
