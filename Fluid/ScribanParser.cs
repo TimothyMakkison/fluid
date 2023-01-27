@@ -128,8 +128,7 @@ namespace Fluid
                 .AndSkip(RParen)
                 .Then<Expression>(x => new RangeExpression(x.Item1, x.Item2));
 
-            Array.Parser = LBracketSkip.Then(x=>x).SkipAnd(Separated(Comma, FilterExpression.Then(x=>x))).AndSkip(RBracket).Then<Expression>((_,x) => new LiteralExpression(new ArrayValue(x.Cast<LiteralExpression>().Select(c=>c.Value)))
-                );
+            Array.Parser = LBracketSkip.SkipAnd(Separated(Comma, FilterExpression.Then(x=>x))).AndSkip(RBracket).Then<Expression>((_,x) => new ArrayLiteralExpression(x));
 
             // primary => NUMBER | STRING | property | ARRAY
             Primary.Parser = 

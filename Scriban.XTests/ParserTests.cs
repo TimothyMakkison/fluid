@@ -212,6 +212,21 @@ public class ParserTests
         Assert.Equal("yes", render);
     }
 
+    [Fact]
+    public void ShouldParseAssignFilterEmit()
+    {
+        var source = @"{{ a = ""yes"" | upcase }}{{ a }}";
+
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var render = template.Render();
+        Assert.Equal("YES", render);
+    }
+
     [Theory]
     [InlineData(@"{{ a= [10]; a[0] }}", "10")]
     [InlineData(@"{{ a= [10, 2,3]; a[0];a[1];a[2] }}", "1023")]
@@ -219,9 +234,7 @@ public class ParserTests
 2,
 3]; a[0];a[1];a[2] }}", "1023")]
     [InlineData(@"{{ a= [""Hello"", "" World""]; a[0];a[1]}}", "Hello World")]
-
-    // TODO Add FilterValue
-    //[InlineData(@"{{ a= [""Hey"", 'welcome ' | upcase]; a[1]}}", "WELCOME")]
+    [InlineData(@"{{ a= [""Hey"", 'welcome' | upcase]; a[1]}}", "WELCOME")]
     public void ShouldAssignArray(string source, string expected)
     {
         var result = _parser.TryParse(source, out var template, out var errors);

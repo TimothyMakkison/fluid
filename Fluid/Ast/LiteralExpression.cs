@@ -1,5 +1,5 @@
-﻿using System.Threading.Tasks;
-using Fluid.Values;
+﻿using Fluid.Values;
+using System.Threading.Tasks;
 
 namespace Fluid.Ast
 {
