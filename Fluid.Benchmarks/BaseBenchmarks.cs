@@ -13,8 +13,10 @@ namespace Fluid.Benchmarks
         protected const string Lorem = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum";
 
         protected readonly static string ProductTemplate;
+        protected readonly static string ScribanProductTemplate;
         protected readonly static string ProductTemplateMustache;
         protected readonly static string BlogPostTemplate;
+        protected readonly static string ScribanBlogPostTemplate;
 
         static BaseBenchmarks()
         {
@@ -24,6 +26,12 @@ namespace Fluid.Benchmarks
             {
                 using var streamReader = new StreamReader(stream);
                 ProductTemplate = streamReader.ReadToEnd();
+            }
+
+            using (var stream = assembly.GetManifestResourceStream("Fluid.Benchmarks.product.scriban"))
+            {
+                using var streamReader = new StreamReader(stream);
+                ScribanProductTemplate = streamReader.ReadToEnd();
             }
 
             using (var stream = assembly.GetManifestResourceStream("Fluid.Benchmarks.product.mustache"))
@@ -36,6 +44,12 @@ namespace Fluid.Benchmarks
             {
                 using var streamReader = new StreamReader(stream);
                 BlogPostTemplate = streamReader.ReadToEnd();
+            }
+
+            using (var stream = assembly.GetManifestResourceStream("Fluid.Benchmarks.blogpost.scriban"))
+            {
+                using var streamReader = new StreamReader(stream);
+                ScribanBlogPostTemplate = streamReader.ReadToEnd();
             }
         }
 

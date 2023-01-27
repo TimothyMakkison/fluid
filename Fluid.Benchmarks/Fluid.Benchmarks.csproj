@@ -15,11 +15,15 @@
 
   <ItemGroup>
     <None Remove="blogpost.liquid" />
+    <None Remove="blogpost.scriban" />
     <None Remove="product.liquid" />
     <None Remove="product.mustache" />
+    <None Remove="product.scriban" />
   </ItemGroup>
 
   <ItemGroup>
+    <EmbeddedResource Include="blogpost.scriban" />
+    <EmbeddedResource Include="product.scriban" />
     <EmbeddedResource Include="product.mustache" />
     <EmbeddedResource Include="product.liquid" />
     <EmbeddedResource Include="blogpost.liquid" />
