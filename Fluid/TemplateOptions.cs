@@ -8,6 +8,14 @@ using System.Threading.Tasks;
 
 namespace Fluid
 {
+    // TODO Override
+    public class ScribanTemplateOptions : TemplateOptions
+    {
+        public ScribanTemplateOptions() 
+        {
+            MemberAccessStrategy = new UnsafeMemberAccessStrategy();
+        }
+    }
     public class TemplateOptions
     {
         public static readonly TemplateOptions Default = new();

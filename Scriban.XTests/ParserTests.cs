@@ -91,6 +91,22 @@ public class ParserTests
         Assert.NotNull(outputStatement);
     }
 
+    [Theory]
+    [InlineData("{{ d }}","12")]
+    [InlineData("{{ a.b }}", "100")]
+    [InlineData("{{ a.c[0] }}", "42")]
+    public void ShouldOutputComplexMembers(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var context = new TemplateContext(new { d = 12, a = new { b = 100, c = new int[] { 42 } } }, new ScribanTemplateOptions());
+        Assert.Equal(expected, template.Render(context));
+    }
+
     [Fact]
     public void ShouldParseForTag()
     {
