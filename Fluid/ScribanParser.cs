@@ -150,9 +150,7 @@ namespace Fluid
                 }))
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 .Or(Range)
-                .Or(
-                    Debug("Call Array from primary",
-                    Array))
+                .Or(Array)
                 ;
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
@@ -166,9 +164,19 @@ namespace Fluid
             RegisteredOperators[">="] = (a, b) => new GreaterThanBinaryExpression(a, b, false);
             RegisteredOperators["<="] = (a, b) => new LowerThanExpression(a, b, false);
 
+            RegisteredOperators["+"] = (a, b) => new AddBinaryExpression(a, b);
+            RegisteredOperators["-"] = (a, b) => new SubstractBinaryExpression(a, b);
+            RegisteredOperators["*"] = (a, b) => new MultiplyBinaryExpression(a, b);
+            RegisteredOperators["/"] = (a, b) => new DivideBinaryExpression(a, b);
+            RegisteredOperators["%"] = (a, b) => new ModuloBinaryExpression(a, b);
+            RegisteredOperators["//"] = (a, b) => new FloorDivideBinaryExpression(a, b);
+
             var CaseValueList = Separated(Terms.Text("or").Or(Terms.Text(",")), Primary);
 
-            CombinatoryExpression = Primary.And(ZeroOrOne(OneOf(Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>', maxSize: 2), Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
+            CombinatoryExpression = Primary.And(ZeroOrOne(
+                OneOf(
+                    Terms.Pattern(x => x == '=' || x == '!' || x == '<' || x == '>' || x=='+' || x=='-' || x=='*' || x=='/' || x=='%', maxSize: 2), 
+                    Terms.Identifier().AndSkip(Literals.WhiteSpace())).Then(x => x.ToString()).When(x => RegisteredOperators.ContainsKey(x)).And(Primary)))
                 .Then(x =>
                  {
                      if (x.Item2.Item1 == null)
@@ -364,7 +372,7 @@ namespace Fluid
                             CreateTag("else").SkipAnd(AnyNotEndTagsList))
                             .Then(x => x != null ? new ElseStatement(x) : null)).Then(x=>x)
                         .Then(x=>x)
-                            .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
+                            .AndSkip(CreateTag("end").ElseError($"If tag end '{{% end %}}' was expected"))
                         .Then<Statement>(x => new IfStatement(x.Item1, x.Item2, x.Item4, x.Item3))
                         .ElseError("Invalid 'if' tag");
            
@@ -377,7 +385,7 @@ namespace Fluid
                        .And(ZeroOrOne(
                            CreateTag("else").SkipAnd(AnyNotEndTagsList))
                            .Then(x => x != null ? new ElseStatement(x) : null))
-                       .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
+                       .AndSkip(CreateTag("end").ElseError($"Case tag end '{{% end %}}' was expected"))
                        .Then<Statement>(x => new CaseStatement(x.Item1, x.Item3, x.Item2))
                        .ElseError("Invalid 'case' tag");
             var ForTag = OneOf(
@@ -394,7 +402,7 @@ namespace Fluid
                             .And(ZeroOrOne(
                                 CreateTag("else").SkipAnd(AnyNotEndTagsList))
                                 .Then(x => x != null ? new ElseStatement(x) : null))
-                            .AndSkip(CreateTag("end").ElseError($"'{{% end %}}' was expected"))
+                            .AndSkip(CreateTag("end").ElseError($"For tag end '{{% end %}}' was expected"))
                             .Then<Statement>(x =>
                             {
                                 var identifier = x.Item1;

@@ -1,6 +1,7 @@
 using Fluid;
 using Fluid.Ast;
 using Fluid.Parser;
+using Newtonsoft.Json.Linq;
 using System.Collections.Generic;
 
 namespace Scriban.XTests;
@@ -1428,5 +1429,24 @@ upcase }}";
         var result = _parser.TryParse(source, out var template, out var errors);
         Assert.True(result, errors);
         Assert.Equal("12345", template.Render());
+    }
+
+    [Theory]
+    [InlineData("{{ a = value + 4 }}{{a}}","14")]
+    [InlineData("{{ value + 4 }}","14")]
+    [InlineData("{{ 10 + 4 }}","14")]
+    [InlineData("{{ a = value - 4 }}{{a}}","6")]
+    [InlineData("{{ a = value * 4 }}{{a}}","40")]
+    [InlineData("{{ a = value / 4 }}{{a}}","2.5")]
+    [InlineData("{{ a = value % 4 }}{{a}}", "2")]
+    [InlineData("{{ a = 10.5 // 2.5 }}{{a}}", "4")]
+    public void ShouldParseAndPrintCompoundAssignment(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+        Assert.True(result, errors);
+
+        var context = new TemplateContext(new { value = 10});
+        var render = template.Render(context);
+        Assert.Equal(expected, render);
     }
 }
