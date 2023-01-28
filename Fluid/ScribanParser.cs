@@ -34,6 +34,7 @@ namespace Fluid
         protected static readonly Parser<char> RBracket = Terms.Char(']');
         protected static readonly Parser<char> Equal = Terms.Char('=');
         protected static readonly Parser<char> Colon = Terms.Char(':');
+        protected static readonly Parser<char> LiteralColon = new CharLiteral(':');
         protected static readonly Parser<char> Comma = Terms.Char(',');
         protected static readonly Parser<char> Dot = Literals.Char('.');
         protected static readonly Parser<char> Percent = Literals.Char('%');
@@ -69,6 +70,7 @@ namespace Fluid
         protected readonly Deferred<List<Statement>> KnownTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<Expression> Array = Deferred<Expression>();
+        protected readonly Deferred<Expression> Object = Deferred<Expression>();
 
         protected readonly Deferred<List<Statement>> ElsifAnyTagsList = Deferred<List<Statement>>();
         protected readonly Deferred<List<Statement>> AnyNotEndTagsList = Deferred<List<Statement>>();
@@ -152,7 +154,12 @@ namespace Fluid
                 .Or(Number.Then<Expression>(x => new LiteralExpression(NumberValue.Create(x))))
                 .Or(Range)
                 .Or(Array)
+                .Or(Object)
                 ;
+
+            Object.Parser = LBrace.SkipAnd(
+                ZeroOrMany(Identifier.AndSkip(LiteralColon).And(Primary)))
+                .AndSkip(RBrace).Then<Expression>((_,x) => new ObjectExpression(x)); ;
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
             RegisteredOperators["startswith"] = (a, b) => new StartsWithBinaryExpression(a, b);

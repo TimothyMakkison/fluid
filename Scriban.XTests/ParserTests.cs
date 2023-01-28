@@ -264,6 +264,30 @@ public class ParserTests
         Assert.Equal(expected, render);
     }
 
+    [Theory]
+    [InlineData("{{ x ={} }}{{x}}","")]
+    [InlineData("{{ x ={b:10} }}{{x}}", "")]
+    [InlineData("{{ x ={b:10} }}{{x.b}}", "10")]
+    [InlineData("{{ x ={c:[14,42]} }}{{x.c[1]}}", "42")]
+    [InlineData("{{ x ={d:a.B} }}{{x.d}}", "100")]
+    [InlineData("{{ x ={e: {f:123}} }}{{x.e.f}}", "123")]
+    public void ShouldAssignObject(string source, string expected)
+    {
+        var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+        var template = _parser.Parse(source);
+        Assert.Equal(expected, template.Render(context));
+    }
+
+    [Theory]
+    [InlineData("{{ a.B = 8}}{{a.B}}", "8")]
+    public void ShouldUpdateObjectProperty(string source, string expected)
+    {
+        var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+        var template = _parser.Parse(source);
+        Assert.Equal(expected, template.Render(context));
+    }
+
+
     [Fact]
     public void ShouldParseIfElseIfTag()
     {
@@ -1421,15 +1445,6 @@ upcase }}";
     //public void TestAssign2()
     //{
     //    var source = "{{ a.B = 100 }}";
-    //    var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
-    //    var template = _parser.Parse(source);
-    //    Assert.Equal("100", template.Render(context));
-    //}
-
-    //[Fact]
-    //public void TestAssign3()
-    //{
-    //    var source = "{{ a ={} }}";
     //    var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
     //    var template = _parser.Parse(source);
     //    Assert.Equal("100", template.Render(context));
