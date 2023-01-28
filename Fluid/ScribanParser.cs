@@ -59,7 +59,10 @@ namespace Fluid
         protected static readonly Parser<string> BinaryAnd = Terms.Text("and");
 
         protected static readonly Parser<string> Identifier = SkipWhiteSpaceOrLines(new IdentifierParser()).Then(x => x.ToString());
-        
+
+        protected static readonly Parser<string> ObjectIdentifier = Capture(
+            Identifier.And(ZeroOrMany(Dot.And(new IdentifierParser())))).Then(x => x.ToString());
+
         protected readonly Parser<List<FilterArgument>> ArgumentsList;
         protected readonly Parser<List<FunctionCallArgument>> FunctionCallArgumentsList;
         protected readonly Parser<Expression> LogicalExpression;
@@ -157,9 +160,8 @@ namespace Fluid
                 .Or(Object)
                 ;
 
-            Object.Parser = LBrace.SkipAnd(
-                ZeroOrMany(Identifier.AndSkip(LiteralColon).And(Primary)))
-                .AndSkip(RBrace).Then<Expression>((_,x) => new ObjectExpression(x)); ;
+            Object.Parser = LBrace.SkipAnd(ZeroOrOne(Separated(Terms.Char(','), Identifier.AndSkip(LiteralColon).And(Primary))))
+                .AndSkip(RBrace).Then<Expression>((_,x) => new ObjectExpression(x));
 
             RegisteredOperators["contains"] = (a, b) => new ContainsBinaryExpression(a, b);
             RegisteredOperators["startswith"] = (a, b) => new StartsWithBinaryExpression(a, b);
@@ -377,15 +379,8 @@ namespace Fluid
 
             var ForgivingAssignement = OneOf(
                 Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2)),
-
-                Identifier.Then(x => x).And(SkipWhiteSpace(Terms.NonWhiteSpace()).Then(x => x.ToString()).When(x => RegisteredCompAssignOperators.ContainsKey(x)))
-                .And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x =>
-            {
-                var (identifier, op, rightValue) = x;
-                var member = Member.Parse(identifier);
-                var expres = RegisteredCompAssignOperators[op](member, rightValue);
-                return new AssignStatement(identifier, expres);
-            }));
+                
+                Identifier.Then(x => x).And(SkipWhiteSpace(Terms.NonWhiteSpace()).Then(x => x.ToString()).When(x => RegisteredCompAssignOperators.ContainsKey(x))).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => { var (identifier, op, rightValue) = x; var member = Member.Parse(identifier); var expres = RegisteredCompAssignOperators[op](member, rightValue); return new AssignStatement(identifier, expres); }));
 
             var IfTag = LogicalExpression
                         .AndSkip(TagEnd)

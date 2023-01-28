@@ -13,7 +13,7 @@ namespace Fluid.Ast
     {
         public ObjectExpression(List<(string, Expression)> values)
         {
-            Values=values;
+            Values = values ?? new List<(string, Expression)>();
         }
 
         public List<(string, Expression)> Values { get; }

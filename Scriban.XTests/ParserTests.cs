@@ -266,6 +266,7 @@ public class ParserTests
 
     [Theory]
     [InlineData("{{ x ={} }}{{x}}","")]
+    [InlineData("{{ x ={ a: 45, b: 42} }}{{x.a;x.b}}", "4542")]
     [InlineData("{{ x ={b:10} }}{{x}}", "")]
     [InlineData("{{ x ={b:10} }}{{x.b}}", "10")]
     [InlineData("{{ x ={c:[14,42]} }}{{x.c[1]}}", "42")]
@@ -279,10 +280,11 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ a.B = 8}}{{a.B}}", "8")]
+    [InlineData("{{ a = {B: 100, C:41}; a = {B: 8} }}{{a.B}}", "8")]
+    [InlineData("{{ a = 100; a = 8 }}{{a}}", "8")]
     public void ShouldUpdateObjectProperty(string source, string expected)
     {
-        var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+        var context = new TemplateContext(new ScribanTemplateOptions());
         var template = _parser.Parse(source);
         Assert.Equal(expected, template.Render(context));
     }
