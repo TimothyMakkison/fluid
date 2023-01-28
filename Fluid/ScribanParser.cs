@@ -368,15 +368,16 @@ namespace Fluid
             RegisteredCompAssignOperators["%="] = (a, b) => new ModuloBinaryExpression(a, b);
             RegisteredCompAssignOperators["//="] = (a, b) => new FloorDivideBinaryExpression(a, b);
 
-            // TODO Accept members as assignment targets.
-            var ForgivingAssignement = OneOf(Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2)),
-                Identifier.Then(x=>x).And(SkipWhiteSpace(Terms.NonWhiteSpace()).Then(x => x.ToString()).When(x=> RegisteredCompAssignOperators.ContainsKey(x)))
+            var ForgivingAssignement = OneOf(
+                Identifier.AndSkip(Equal).And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x => new AssignStatement(x.Item1, x.Item2)),
+
+                Identifier.Then(x => x).And(SkipWhiteSpace(Terms.NonWhiteSpace()).Then(x => x.ToString()).When(x => RegisteredCompAssignOperators.ContainsKey(x)))
                 .And(FilterExpression).AndSkip(TagEnd.ElseError(ErrorMessages.ExpectedTagEnd)).Then<Statement>(x =>
             {
                 var (identifier, op, rightValue) = x;
                 var member = Member.Parse(identifier);
-                var comb = RegisteredCompAssignOperators[op](member, rightValue);
-                return new AssignStatement(identifier, comb);
+                var expres = RegisteredCompAssignOperators[op](member, rightValue);
+                return new AssignStatement(identifier, expres);
             }));
 
             var IfTag = LogicalExpression

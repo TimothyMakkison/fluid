@@ -16,8 +16,6 @@ namespace Fluid.Parser
         public static DebugParser<T> Debug<T>(Parser<T> parser, string id = "") => new DebugParser<T>(parser, id);
 
         public static DebugParser<T> Debug<T>(string id, Parser<T> parser) => new DebugParser<T>(parser, id);
-
-
     }
 
     public sealed class SkipWhiteSpaceOrLines<T> : Parser<T>
