@@ -1,8 +1,6 @@
 using Fluid;
 using Fluid.Ast;
 using Fluid.Parser;
-using Newtonsoft.Json.Linq;
-using System.Collections.Generic;
 
 namespace Scriban.XTests;
 
@@ -34,7 +32,6 @@ public class ParserTests
     [Fact]
     public void ShouldFiltersWithNamedArguments()
     {
-
         var statements = Parse("{{ a | b: c:1, 'value', d: 3 }}");
         Assert.Single(statements);
 
@@ -52,7 +49,6 @@ public class ParserTests
         Assert.Null(filterExpression.Parameters[1].Name);
         Assert.Equal("d", filterExpression.Parameters[2].Name);
     }
-
 
     [Fact]
     public void ShouldParseText()
@@ -92,7 +88,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ d }}","12")]
+    [InlineData("{{ d }}", "12")]
     [InlineData("{{ a.b }}", "100")]
     [InlineData("{{ a.c[0] }}", "42")]
     public void ShouldOutputComplexMembers(string source, string expected)
@@ -247,7 +243,7 @@ public class ParserTests
     [Theory]
     [InlineData(@"{{ a= [10]; a[0] }}", "10")]
     [InlineData(@"{{ a= [10, 2,3]; a[0];a[1];a[2] }}", "1023")]
-    [InlineData(@"{{ a= [10, 
+    [InlineData(@"{{ a= [10,
 2,
 3]; a[0];a[1];a[2] }}", "1023")]
     [InlineData(@"{{ a= [""Hello"", "" World""]; a[0];a[1]}}", "Hello World")]
@@ -265,7 +261,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData("{{ x ={} }}{{x}}","")]
+    [InlineData("{{ x ={} }}{{x}}", "")]
     [InlineData("{{ x ={ a: 45, b: 42} }}{{x.a;x.b}}", "4542")]
     [InlineData("{{ x ={b:10} }}{{x}}", "")]
     [InlineData("{{ x ={b:10} }}{{x.b}}", "10")]
@@ -289,7 +285,6 @@ public class ParserTests
         Assert.Equal(expected, template.Render(context));
     }
 
-
     [Fact]
     public void ShouldParseIfElseIfTag()
     {
@@ -301,7 +296,6 @@ public class ParserTests
         Assert.NotNull(ifStatement.Else);
         Assert.NotNull(ifStatement.ElseIfs);
     }
-
 
     [Theory]
     [InlineData("yes", 0)]
@@ -396,7 +390,7 @@ public class ParserTests
   Hello there {{ { }}!
 {{ end }}", "at (")]
     [InlineData(@"{{ username = ""John G. Chalmers-Smith"" }}
-{{ if username and 
+{{ if username and
       username.size > 5 &&
       username.size < 10 }}
   Wow, {{ username }}, you have a longish name!
@@ -442,8 +436,6 @@ public class ParserTests
     {
         var result = _parser.TryParse(@"
                 {{ case food }}
-                    
-
 
                     {{ when 'cake' }}
                         yum
@@ -461,7 +453,7 @@ public class ParserTests
     }
 
     [Theory]
-    [InlineData(@"{{ 20 | 
+    [InlineData(@"{{ 20 |
 divided_by: 7.0 |
 round: 2 }}", "2.86")]
     [InlineData("{{ 20 | divided_by: 7.0 | round: 2 }}", "2.86")]
@@ -497,7 +489,6 @@ round: 2 }}", "2.86")]
 
         Assert.Equal(expected, rendered);
     }
-
 
     //[Fact]
     //public void ShouldIndexStringSegment()
@@ -560,7 +551,6 @@ round: 2 }}", "2.86")]
     [InlineData("{{ if }}")]
     [InlineData("{{ comment }}")]
     [InlineData("{{ capture }}")]
-
     public void ShouldThrowParseExceptionMissingTag(string template)
     {
         Assert.Throws<ParseException>(() => _parser.Parse(template));
@@ -640,6 +630,46 @@ round: 2 }}", "2.86")]
         Assert.Null(errors);
 
         var rendered = template.Render();
+
+        Assert.Equal(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData(@"<ul>
+    {{~ for product in products ~}}
+    <li>{{ product.name }}</li>
+    {{~ end ~}}
+</ul>", "<ul>\r\n    <li>Orange</li>\r\n    <li>Banana</li>\r\n    <li>Apple</li>\r\n</ul>")]
+    public void NonGreedyParseComplexObject(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var model = new { products = new[] { new { name = "Orange" }, new { name = "Banana" }, new { name = "Apple" } } };
+        var rendered = template.Render(new TemplateContext(model) { });
+
+        Assert.Equal(expected, rendered);
+    }
+
+    [Theory]
+    [InlineData(@"<ul>
+    {{~ for product in products ~}}
+    <li>{{ product }}</li>
+    {{~ end ~}}
+</ul>", "<ul>\r\n    <li>Orange</li>\r\n    <li>Banana</li>\r\n    <li>Apple</li>\r\n</ul>")]
+    public void NonGreedyParse(string source, string expected)
+    {
+        var result = _parser.TryParse(source, out var template, out var errors);
+
+        Assert.True(result, errors);
+        Assert.NotNull(template);
+        Assert.Null(errors);
+
+        var model = new { products = new[] { "Orange", "Banana", "Apple" } };
+        var rendered = template.Render(new TemplateContext(model) { });
 
         Assert.Equal(expected, rendered);
     }
@@ -732,7 +762,6 @@ round: 2 }}", "2.86")]
         Assert.Equal(expected, rendered);
     }
 
-
     [Theory]
     [InlineData("{{ null }}", "")]
     public void NullEmitsEmpty(string source, string expected)
@@ -769,7 +798,7 @@ true
     [Fact]
     public void ShouldSkipNewLinesInTags3()
     {
-        var source = @"{{ 
+        var source = @"{{
 if true or false
 if false
 echo false
@@ -789,7 +818,6 @@ end
 
         Assert.Equal("true", rendered);
     }
-
 
     [Fact]
     public void ShouldSkipNewLinesInTags8()
@@ -815,11 +843,10 @@ end
         Assert.Contains("true", rendered);
     }
 
-
     [Fact]
     public void ShouldSkipNewLinesInTags2()
     {
-        var source = @"{{ 
+        var source = @"{{
 if true or false
 true
 end
@@ -839,7 +866,7 @@ end
     [Fact]
     public void ShouldSkipNewLinesInTags5()
     {
-        var source = @"{{ 
+        var source = @"{{
 if true or false
 ""true""
 end
@@ -859,7 +886,7 @@ end
     [Fact]
     public void ShouldSkipNewLinesInTags7()
     {
-        var source = @"{{ 
+        var source = @"{{
 ""Hey""
 }}";
 
@@ -925,63 +952,44 @@ true
     }
 
     [Theory]
-
     [InlineData("'' == p", "false")]
     [InlineData("p == ''", "false")]
     [InlineData("p != ''", "true")]
-
     [InlineData("p == nil", "true")]
     [InlineData("p != nil", "false")]
     [InlineData("nil == p", "true")]
-
     [InlineData("p == blank", "true")]
     [InlineData("blank == p ", "true")]
-
     [InlineData("empty == blank", "true")]
     [InlineData("blank == empty", "true")]
-
     [InlineData("nil == blank", "true")]
     [InlineData("blank == nil", "true")]
-
     [InlineData("blank == ''", "true")]
     [InlineData("'' == blank", "true")]
-
     [InlineData("nil == ''", "false")]
     [InlineData("'' == nil", "false")]
-
     [InlineData("empty == ''", "true")]
     [InlineData("'' == empty", "true")]
-
     [InlineData("e == ''", "true")]
     [InlineData("'' == e", "true")]
-
     [InlineData("e == blank", "true")]
     [InlineData("blank == e", "true")]
-
     [InlineData("empty == nil", "false")]
     [InlineData("nil == empty", "false")]
-
     [InlineData("p != nil and p != ''", "false")]
     [InlineData("p != '' and p != nil", "false")]
-
     [InlineData("e != nil and e != ''", "false")]
     [InlineData("e != '' and e != nil", "false")]
-
     [InlineData("f != nil and f != ''", "true")]
     [InlineData("f != '' and f != nil", "true")]
-
     [InlineData("e == nil", "false")]
     [InlineData("nil == e", "false")]
-
     [InlineData("e == empty ", "true")]
     [InlineData("empty == e ", "true")]
-
     [InlineData("empty == f", "false")]
     [InlineData("f == empty", "false")]
-
     [InlineData("p == empty", "false")]
     [InlineData("empty == p", "false")]
-
     public Task EmptyShouldEqualToNil(string source, string expected)
     {
         return CheckAsync(source, expected, t => t.SetValue("e", "").SetValue("f", "hello"));
@@ -992,7 +1000,6 @@ true
     [InlineData("empty == zero", "false")]
     [InlineData("zero == blank", "false")]
     [InlineData("blank == zero", "false")]
-
     [InlineData("one == empty", "false")]
     [InlineData("empty == one", "false")]
     [InlineData("one == blank", "false")]
@@ -1020,16 +1027,16 @@ true
         Assert.Equal("true", template.Render(context));
     }
 
-   // [Fact]
-   // public void TestLines()
-   // {
-   //     var source = @"{{ a_multi_line_value = ""test1\ntest2\ntest3\n"" }}
-   //{{ a_multi_line_value }}Hello";
-   //     var model = new { a = "world", b = "cold", c = true, d = "dr" };
-   //     var context = new TemplateContext(model);
-   //     var template = _parser.Parse(source);
-   //     Assert.Equal("true", template.Render(context));
-   // }
+    // [Fact]
+    // public void TestLines()
+    // {
+    //     var source = @"{{ a_multi_line_value = ""test1\ntest2\ntest3\n"" }}
+    //{{ a_multi_line_value }}Hello";
+    //     var model = new { a = "world", b = "cold", c = true, d = "dr" };
+    //     var context = new TemplateContext(model);
+    //     var template = _parser.Parse(source);
+    //     Assert.Equal("true", template.Render(context));
+    // }
 
     [Fact]
     public void CycleShouldHandleNumbers()
@@ -1106,7 +1113,7 @@ true
     {{ if property.IsReadOnly }}readonly {{ end }}{{ property.PropertyName }}{{ if property.IsOptional }}?{{ elsif RequiresStrictPropertyInitialization and property.HasDefaultValue == false }}!{{ end }}: {{ property.Type }}{{ property.TypePostfix }};
 {{- end }}
 {{- if HasIndexerProperty }}
-    [key: string]: {{ IndexerPropertyValueType }}; 
+    [key: string]: {{ IndexerPropertyValueType }};
 {{- end }}
 {{- if HasDiscriminator }}
     protected _discriminator: string;
@@ -1147,7 +1154,7 @@ true
                 }
             }
 {{-                     else }}
-            this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }}; 
+            this.{{ property.PropertyName }} = data.{{ property.PropertyName }} && !(<any>data.{{ property.PropertyName }}).toJSON ? new {{ property.Type }}(data.{{ property.PropertyName }}) : <{{ property.Type }}>this.{{ property.PropertyName }};
 {{-                     end }}
 {{-                 end }}
 {{-             end }}
@@ -1236,7 +1243,7 @@ true
         }
 {{- end }}
 {{- if HasDiscriminator }}
-        data[""{{ BaseDiscriminator }}""] = this._discriminator; 
+        data[""{{ BaseDiscriminator }}""] = this._discriminator;
 {{- end }}
 {{- for property in Properties }}
         {{ property.ConvertToJavaScriptCode | tab }}
@@ -1244,7 +1251,7 @@ true
 {{- if HasInheritance }}
         super.toJSON(data);
 {{- end }}
-        return data; 
+        return data;
     }
 {{- if GenerateCloneMethod }}
     clone(): {{ ClassName }} {
@@ -1271,7 +1278,7 @@ true
     {{ property.PropertyName }}{{ if property.IsOptional }}?{{ end }}: {{ property.ConstructorInterfaceType }}{{ property.TypePostfix }};
 {{-   end }}
 {{-   if HasIndexerProperty }}
-    [key: string]: {{ IndexerPropertyValueType }}; 
+    [key: string]: {{ IndexerPropertyValueType }};
 {{-   end }}
 }
 {{- end }}
@@ -1291,12 +1298,11 @@ class  {
     }
     toJSON(data?: any) {
         data = typeof data === 'object' ? data : {};
-        return data; 
+        return data;
     }
 }
 ", rendered);
     }
-
 
     [Theory]
     [InlineData("{{1}}", "1")]
@@ -1363,9 +1369,9 @@ Hey";
     public void ShouldParseLiquidTag()
     {
         var source = @"
-{{ 
-   'welcome ' | upcase 
-   'to the liquid tag' | 
+{{
+   'welcome ' | upcase
+   'to the liquid tag' |
 upcase }}";
 
         Assert.True(_parser.TryParse(source, out var template, out var errors), errors);
@@ -1380,7 +1386,7 @@ upcase }}";
 {{ cool = true
    if cool
      'welcome to the liquid tag' | upcase
-   end 
+   end
 }}
 ";
 
@@ -1392,7 +1398,6 @@ upcase }}";
     [Fact]
     public void ShouldParseFunctionCall()
     {
-
         var options = new FluidParserOptions { AllowFunctions = true };
 
 #if COMPILED
@@ -1418,7 +1423,6 @@ upcase }}";
     [Fact]
     public void ShouldNotParseFunctionCall()
     {
-
         var options = new FluidParserOptions { AllowFunctions = false };
 
 #if COMPILED
@@ -1483,12 +1487,12 @@ upcase }}";
     }
 
     [Theory]
-    [InlineData("{{ a = value + 4 }}{{a}}","14")]
-    [InlineData("{{ value + 4 }}","14")]
-    [InlineData("{{ 10 + 4 }}","14")]
-    [InlineData("{{ a = value - 4 }}{{a}}","6")]
-    [InlineData("{{ a = value * 4 }}{{a}}","40")]
-    [InlineData("{{ a = value / 4 }}{{a}}","2.5")]
+    [InlineData("{{ a = value + 4 }}{{a}}", "14")]
+    [InlineData("{{ value + 4 }}", "14")]
+    [InlineData("{{ 10 + 4 }}", "14")]
+    [InlineData("{{ a = value - 4 }}{{a}}", "6")]
+    [InlineData("{{ a = value * 4 }}{{a}}", "40")]
+    [InlineData("{{ a = value / 4 }}{{a}}", "2.5")]
     [InlineData("{{ a = value % 4 }}{{a}}", "2")]
     [InlineData("{{ a = 10.5 // 2.5 }}{{a}}", "4")]
     public void ShouldParseAndPrintArithmeticExpressions(string source, string expected)
@@ -1496,7 +1500,7 @@ upcase }}";
         var result = _parser.TryParse(source, out var template, out var errors);
         Assert.True(result, errors);
 
-        var context = new TemplateContext(new { value = 10});
+        var context = new TemplateContext(new { value = 10 });
         var render = template.Render(context);
         Assert.Equal(expected, render);
     }

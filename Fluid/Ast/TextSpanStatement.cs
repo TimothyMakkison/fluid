@@ -26,11 +26,15 @@ namespace Fluid.Ast
 
         public bool StripLeft { get; set; }
         public bool StripRight { get; set; }
+        public bool NonGreedyStripLeft{ get; set; }
+        public bool NonGreedyStripRight { get; set; }
 
         public bool NextIsTag { get; set; }
         public bool NextIsOutput { get; set; }
+        public bool NextIsEscape { get; set; }
         public bool PreviousIsTag { get; set; }
         public bool PreviousIsOutput { get; set; }
+        public bool PreviousIsEscape { get; set; }
 
         public ref readonly TextSpan Text => ref _text;
 
@@ -38,7 +42,7 @@ namespace Fluid.Ast
         {
             if (!_isStripped)
             {
-                // Prevent two threads from strsipping the same statement in case WriteToAsync is called concurrently
+                // Prevent two threads from stripping the same statement in case WriteToAsync is called concurrently
                 // 
                 lock (_synLock)
                 {
@@ -48,11 +52,13 @@ namespace Fluid.Ast
                         StripLeft |=
                             (PreviousIsTag && (trimming & TrimmingFlags.TagRight) != 0) ||
                             (PreviousIsOutput && (trimming & TrimmingFlags.OutputRight) != 0)
+                            || NonGreedyStripLeft
                             ;
 
                         StripRight |=
                             (NextIsTag && (trimming & TrimmingFlags.TagLeft) != 0) ||
                             (NextIsOutput && (trimming & TrimmingFlags.OutputLeft) != 0)
+                            || NonGreedyStripRight
                             ;
 
                         var span = _text.Buffer;
@@ -83,7 +89,7 @@ namespace Fluid.Ast
                                 }
                             }
 
-                            if (!context.Options.Greedy)
+                            if (!context.Options.Greedy || NonGreedyStripLeft)
                             {
                                 if (firstNewLine != -1)
                                 {
@@ -116,7 +122,7 @@ namespace Fluid.Ast
                                 }
                             }
 
-                            if (!context.Options.Greedy)
+                            if (!context.Options.Greedy || NonGreedyStripRight)
                             {
                                 if (lastNewLine != -1)
                                 {

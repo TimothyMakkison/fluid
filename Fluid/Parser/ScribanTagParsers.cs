@@ -47,14 +47,27 @@ namespace Fluid.Parser
 
                 if (context.Scanner.ReadChar('{') && context.Scanner.ReadChar('{'))
                 {
+                    bool trim = false;
+                    bool nonGreedyTrim = false;
 
-                    var trim = context.Scanner.ReadChar('-');
+                    if (context.Scanner.ReadChar('-'))
+                    {
+                        trim = true;
+                    }
+                    else if (context.Scanner.ReadChar('~'))
+                    {
+                        nonGreedyTrim = true;
+                    }
 
                     if (p.PreviousTextSpanStatement != null)
                     {
                         if (trim)
                         {
                             p.PreviousTextSpanStatement.StripRight = true;
+                        }
+                        else if (nonGreedyTrim)
+                        {
+                            p.PreviousTextSpanStatement.NonGreedyStripRight = true;
                         }
 
                         p.PreviousTextSpanStatement.NextIsTag = true;
@@ -134,15 +147,25 @@ namespace Fluid.Parser
                 }
 
                 var start = context.Scanner.Cursor.Position;
-                bool trim;
+
+                bool trim = false;
+                bool nonGreedyTrim = false;
 
                 if (p.InsideLiquidTag)
                 {
-                    trim = context.Scanner.ReadChar('-');
+                    if (context.Scanner.ReadChar('-'))
+                    {
+                        trim = true;
+                    }
+                    else if (context.Scanner.ReadChar('~'))
+                    {
+                        nonGreedyTrim = true;
+                    }
 
                     if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                     {
                         p.StripNextTextSpanStatement = trim;
+                        p.NonGreedyStripNextTextSpanStatement = nonGreedyTrim;
                         p.PreviousTextSpanStatement = null;
                         p.PreviousIsTag = true;
                         p.PreviousIsOutput = false;
@@ -166,11 +189,19 @@ namespace Fluid.Parser
                     return false;
                 }
 
-                trim = context.Scanner.ReadChar('-');
+                if (context.Scanner.ReadChar('-'))
+                {
+                    trim = true;
+                }
+                else if (context.Scanner.ReadChar('~'))
+                {
+                    nonGreedyTrim = true;
+                }
 
                 if (context.Scanner.ReadChar('}') && context.Scanner.ReadChar('}'))
                 {
                     p.StripNextTextSpanStatement = trim;
+                    p.NonGreedyStripNextTextSpanStatement = nonGreedyTrim;
                     p.PreviousTextSpanStatement = null;
                     p.PreviousIsTag = true;
                     p.PreviousIsOutput = false;

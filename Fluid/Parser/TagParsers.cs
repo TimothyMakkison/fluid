@@ -25,8 +25,9 @@ namespace Fluid.Parser
             Trim = trim;
         }
 
-        public readonly bool Open;
-        public readonly bool Trim;
+        public readonly bool Open { get; }
+        public readonly bool Trim { get; }
+        public readonly bool NonGreedyTrim { get; }
     }
 
     public static class TagParsers

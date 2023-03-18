@@ -299,8 +299,15 @@ namespace Fluid
                         p.StripNextTextSpanStatement = false;
                     }
 
+                    if (p.NonGreedyStripNextTextSpanStatement)
+                    {
+                        result.NonGreedyStripLeft = true;
+                        p.StripNextTextSpanStatement = false;
+                    }
+
                     result.PreviousIsTag = p.PreviousIsTag;
                     result.PreviousIsOutput = p.PreviousIsOutput;
+                    result.PreviousIsEscape = p.PreviousIsEscape;
 
                     return result;
                 });
