@@ -6,6 +6,21 @@ using System.Threading.Tasks;
 
 namespace Fluid
 {
+    public class ScribanTemplateContext : TemplateContext {
+        public ScribanTemplateContext(object model) : base(model)
+        {
+            Options.MemberAccessStrategy = new UnsafeMemberAccessStrategy();
+        }
+        public ScribanTemplateContext(object model, ScribanTemplateOptions options) : base(model, options)
+        {
+            Options.MemberAccessStrategy = new UnsafeMemberAccessStrategy();
+        }
+        public ScribanTemplateContext() : base()
+        {
+            Options.MemberAccessStrategy = new UnsafeMemberAccessStrategy();
+        }
+
+    }
     public class TemplateContext
     {
         protected int _recursion = 0;

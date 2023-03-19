@@ -14,7 +14,6 @@ namespace Fluid.Parser
 
         public static ResettingSwitch<T, U> ResettingSwitch<T, U>(this Parser<T> previousParser, Func<ParseContext, T, Parser<U>> action) => new ResettingSwitch<T,U>(previousParser, action);
 
-
         private sealed class TagStartParser : Parser<TagResult>
         {
             private readonly bool _skipWhiteSpace;

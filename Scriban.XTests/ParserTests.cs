@@ -18,11 +18,11 @@ public class ParserTests
         return ((FluidTemplate)template).Statements;
     }
 
-    private async Task CheckAsync(string source, string expected, Action<TemplateContext> init = null)
+    private async Task CheckAsync(string source, string expected, Action<ScribanTemplateContext> init = null)
     {
         _parser.TryParse("{{ if " + source + " }}true{{ else }}false{{ end }}", out var template, out var messages);
 
-        var context = new TemplateContext();
+        var context = new ScribanTemplateContext();
         init?.Invoke(context);
 
         var result = await template.RenderAsync(context);
@@ -99,7 +99,7 @@ public class ParserTests
         Assert.NotNull(template);
         Assert.Null(errors);
 
-        var context = new TemplateContext(new { d = 12, a = new { b = 100, c = new int[] { 42 } } }, new ScribanTemplateOptions());
+        var context = new ScribanTemplateContext(new { d = 12, a = new { b = 100, c = new int[] { 42 } } });
         Assert.Equal(expected, template.Render(context));
     }
 
@@ -270,7 +270,7 @@ public class ParserTests
     [InlineData("{{ x ={e: {f:123}} }}{{x.e.f}}", "123")]
     public void ShouldAssignObject(string source, string expected)
     {
-        var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+        var context = new ScribanTemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
         var template = _parser.Parse(source);
         Assert.Equal(expected, template.Render(context));
     }
@@ -280,7 +280,7 @@ public class ParserTests
     [InlineData("{{ a = 100; a = 8 }}{{a}}", "8")]
     public void ShouldUpdateObjectProperty(string source, string expected)
     {
-        var context = new TemplateContext(new ScribanTemplateOptions());
+        var context = new ScribanTemplateContext(new ScribanTemplateOptions());
         var template = _parser.Parse(source);
         Assert.Equal(expected, template.Render(context));
     }
@@ -312,7 +312,7 @@ public class ParserTests
         Assert.NotNull(template);
         Assert.Null(errors);
 
-        var context = new TemplateContext(new { value });
+        var context = new ScribanTemplateContext(new { value });
         var render = template.Render(context);
         Assert.Equal(expected, render);
     }
@@ -444,7 +444,7 @@ public class ParserTests
                 {{ end }}
                 ", out var template, out var errors);
 
-        var context = new TemplateContext();
+        var context = new ScribanTemplateContext();
         context.SetValue("food", "cake");
 
         Assert.True(result, errors);
@@ -484,7 +484,7 @@ round: 2 }}", "2.86")]
         Assert.NotNull(template);
         Assert.Null(errors);
 
-        var context = new TemplateContext(new { value = 20 });
+        var context = new ScribanTemplateContext(new { value = 20 });
         var rendered = template.Render(context);
 
         Assert.Equal(expected, rendered);
@@ -524,7 +524,7 @@ round: 2 }}", "2.86")]
 
         if (_parser.TryParse(template, out var result))
         {
-            result.Render(new TemplateContext(model));
+            result.Render(new ScribanTemplateContext(model));
         }
     }
 
@@ -540,7 +540,7 @@ round: 2 }}", "2.86")]
 
         _parser.TryParse(source, out var template);
 
-        var rendered = template.Render(new TemplateContext(model));
+        var rendered = template.Render(new ScribanTemplateContext(model));
 
         Assert.Equal("Tobi", rendered);
     }
@@ -649,7 +649,7 @@ round: 2 }}", "2.86")]
         Assert.Null(errors);
 
         var model = new { products = new[] { new { name = "Orange" }, new { name = "Banana" }, new { name = "Apple" } } };
-        var rendered = template.Render(new TemplateContext(model) { });
+        var rendered = template.Render(new ScribanTemplateContext(model) { });
 
         Assert.Equal(expected, rendered);
     }
@@ -669,7 +669,7 @@ round: 2 }}", "2.86")]
         Assert.Null(errors);
 
         var model = new { products = new[] { "Orange", "Banana", "Apple" } };
-        var rendered = template.Render(new TemplateContext(model) { });
+        var rendered = template.Render(new ScribanTemplateContext(model) { });
 
         Assert.Equal(expected, rendered);
     }
@@ -1022,7 +1022,7 @@ true
     {
         var source = "{{ a = ' ' }}{{ a == blank }}";
         var model = new { a = " ", b = "" };
-        var context = new TemplateContext(model);
+        var context = new ScribanTemplateContext(model);
         var template = _parser.Parse(source);
         Assert.Equal("true", template.Render(context));
     }
@@ -1033,7 +1033,7 @@ true
     //     var source = @"{{ a_multi_line_value = ""test1\ntest2\ntest3\n"" }}
     //{{ a_multi_line_value }}Hello";
     //     var model = new { a = "world", b = "cold", c = true, d = "dr" };
-    //     var context = new TemplateContext(model);
+    //     var context = new ScribanTemplateContext(model);
     //     var template = _parser.Parse(source);
     //     Assert.Equal("true", template.Render(context));
     // }
@@ -1311,7 +1311,7 @@ class  {
     public async Task ShouldSupportCompactNotation(string source, string expected)
     {
         Assert.True(_parser.TryParse(source, out var template, out var _));
-        var context = new TemplateContext();
+        var context = new ScribanTemplateContext();
         var result = await template.RenderAsync(context);
         Assert.Equal(expected, result);
     }
@@ -1442,7 +1442,7 @@ upcase }}";
         // Same for blank, true, false
 
         var source = "{{ emptyThing = 'this is not empty' }}{{ emptyThing }}{{ empty.size }}";
-        var context = new TemplateContext(new { empty = "eric" });
+        var context = new ScribanTemplateContext(new { empty = "eric" });
         var template = _parser.Parse(source);
         Assert.Equal("this is not empty4", template.Render(context));
     }
@@ -1451,7 +1451,7 @@ upcase }}";
     //public void TestAssign2()
     //{
     //    var source = "{{ a.B = 100 }}";
-    //    var context = new TemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
+    //    var context = new ScribanTemplateContext(new { a = new { B = 100 } }, new ScribanTemplateOptions());
     //    var template = _parser.Parse(source);
     //    Assert.Equal("100", template.Render(context));
     //}
@@ -1500,7 +1500,7 @@ upcase }}";
         var result = _parser.TryParse(source, out var template, out var errors);
         Assert.True(result, errors);
 
-        var context = new TemplateContext(new { value = 10 });
+        var context = new ScribanTemplateContext(new { value = 10 });
         var render = template.Render(context);
         Assert.Equal(expected, render);
     }
@@ -1518,7 +1518,7 @@ upcase }}";
         var result = _parser.TryParse(source, out var template, out var errors);
         Assert.True(result, errors);
 
-        var context = new TemplateContext(new { value = 10 });
+        var context = new ScribanTemplateContext(new { value = 10 });
         var render = template.Render(context);
         Assert.Equal(expected, render);
     }
