@@ -3,6 +3,7 @@ using System.IO;
 using System.Text.Encodings.Web;
 using System.Threading.Tasks;
 using Fluid.Utils;
+using System;
 
 namespace Fluid.Ast
 {
@@ -12,7 +13,9 @@ namespace Fluid.Ast
         private bool _isEmpty;
         private readonly object _synLock = new();
         private TextSpan _text;
+#if NETSTANDARD2_0
         private string _buffer;
+#endif
 
         public TextSpanStatement(in TextSpan text)
         {
@@ -135,8 +138,10 @@ namespace Fluid.Ast
 
                             _text = new TextSpan(buffer, offset + start, end - start + 1);
                         }
-
+#if NETSTANDARD2_0
                         _buffer = _text.ToString();
+#endif
+
                         _isStripped = true;
                     }
                 }
@@ -159,7 +164,12 @@ namespace Fluid.Ast
                 return Completion.Normal;
             }
 
+#if NETCOREAPP3_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+            var task = writer.WriteAsync(_text.AsMemory());
+#else
             var task = writer.WriteAsync(_buffer);
+
+#endif
             if (!task.IsCompletedSuccessfully())
             {
                 return Awaited(task);
@@ -168,4 +178,18 @@ namespace Fluid.Ast
             return new ValueTask<Completion>(Completion.Normal);
         }
     }
+#if NETCOREAPP3_1_OR_GREATER || NETSTANDARD2_1_OR_GREATER
+    internal static class TextSpanExt
+    {
+        public static bool IsEmpty(this TextSpan textSpan)
+        {
+            return textSpan.Length <= 0;
+        }
+
+        public static ReadOnlyMemory<char> AsMemory(this TextSpan textSpan)
+        {
+            return textSpan.Buffer.AsMemory(textSpan.Offset, textSpan.Length);
+        }
+    }
+#endif
 }
