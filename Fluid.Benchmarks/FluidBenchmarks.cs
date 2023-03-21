@@ -23,19 +23,19 @@ namespace Fluid.Benchmarks
             _parser.TryParse(ProductTemplate, out _fluidTemplate, out var _);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public override object Parse()
         {
             return _parser.Parse(ProductTemplate);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public override object ParseBig()
         {
             return _parser.Parse(BlogPostTemplate);
         }
 
-        [Benchmark]
+        //[Benchmark]
         public override string Render()
         {
             var context = new TemplateContext(_options).SetValue("products", Products);
@@ -92,22 +92,21 @@ namespace Fluid.Benchmarks
     //[IterationCount(2)]
     public class WriteBenchmark
     {
-        private readonly OriginTextSpanStatement _preOrig;
+        private readonly TextSpanStatement _preOrig;
         private readonly TextSpanStatement _preText;
 
-        private readonly OriginTextSpanStatement _nonOrig;
+        private readonly TextSpanStatement _nonOrig;
         private readonly TextSpanStatement _nonText;
 
         private readonly TemplateContext _context;
         private readonly string _text = "     Hello    ";
         public WriteBenchmark()
         {
-            _preOrig = new OriginTextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
+            _preOrig = new TextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
             _preText = new TextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
 
-            _nonOrig = new OriginTextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
+            _nonOrig = new TextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
             _nonText = new TextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
-            _nonOrig._buffer = _lorem;
             _context = new TemplateContext();
 
             span = new TextSpan(_lorem);
@@ -209,7 +208,7 @@ namespace Fluid.Benchmarks
         [Benchmark]
         public async ValueTask<Completion> NonOrig()
         {
-            var _nonOrig = new OriginTextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
+            var _nonOrig = new TextSpanStatement(_lorem) { StripLeft = true, StripRight = true };
             var sb = new StringBuilder();
             var writer = new StringWriter(sb);
 
